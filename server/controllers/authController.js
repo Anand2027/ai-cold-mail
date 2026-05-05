@@ -15,7 +15,7 @@ const generateOTP = () => {
 exports.registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
-
+// dekhtye hai change hua
     // Input validation
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'Name, email, and password are required' });
