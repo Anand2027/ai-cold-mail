@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const path = require('path');
 
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
@@ -32,28 +31,25 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-
+// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/ai', aiRoutes);
 
-// Absolute path to client build folder
-const __dirnamePath = path.resolve();
-const clientBuildPath = path.join(__dirnamePath, '..', 'client', 'dist');
-
-// Serve static files
-app.use(express.static(clientBuildPath));
-
-// For any route not starting with /api, send index.html
-app.get('*', (req, res) => {
-    if (!req.path.startsWith('/api')) {
-        res.sendFile(path.join(clientBuildPath, 'index.html'));
-    }
+// Health Check Route
+app.get('/', (req, res) => {
+    res.json({
+        success: true,
+        message: 'AI Cold Email Backend Running'
+    });
 });
 
-
+// Error Handler
 app.use((err, req, res, next) => {
     console.error(err.stack);
-    res.status(500).json({ message: 'Server Error', error: err.message });
+    res.status(500).json({
+        message: 'Server Error',
+        error: err.message
+    });
 });
 
 const PORT = process.env.PORT || 5000;
