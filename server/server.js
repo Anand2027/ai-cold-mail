@@ -10,8 +10,11 @@ const aiRoutes = require('./routes/aiRoutes');
 dotenv.config();
 
 // Validate required environment variables
-const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET', 'GROQ_API_KEY'];
+const requiredEnvVars = ['JWT_SECRET', 'GROQ_API_KEY'];
 const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+if (!process.env.MONGODB_URI && !process.env.MONGO_URI) {
+    missingEnvVars.push('MONGODB_URI or MONGO_URI');
+}
 
 if (missingEnvVars.length > 0) {
     console.error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);

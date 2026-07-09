@@ -2,24 +2,30 @@ const nodemailer = require('nodemailer');
 
 const sendEmail = async (options) => {
     try {
-        if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+        const emailUser = process.env.EMAIL_USER?.trim();
+        const emailPass = process.env.EMAIL_PASS?.trim();
+
+        if (!emailUser || !emailPass) {
             throw new Error('Email credentials not configured in environment variables');
         }
 
         const transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
+                user: emailUser,
+                pass: emailPass,
             },
         });
 
         const mailOptions = {
-            from: process.env.EMAIL_USER,
+            from: `"AI Cold Mail Generator" <${emailUser}>`,
             to: options.email,
             subject: options.subject,
             text: options.message,
-            html: `<p>${options.message}</p>`,
+            html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827">${options.message
+                .split('\n')
+                .map((line) => `<p style="margin:0 0 10px">${line}</p>`)
+                .join('')}</div>`,
         };
 
         const info = await transporter.sendMail(mailOptions);

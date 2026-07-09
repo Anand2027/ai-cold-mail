@@ -1,70 +1,71 @@
-import React from "react";
-import { NavLink } from "react-router-dom";
+import React from 'react';
+import { NavLink } from 'react-router-dom';
 import {
-  HomeIcon,
-  DocumentTextIcon,
   ArrowLeftIcon,
-} from "@heroicons/react/24/outline";
+  DocumentTextIcon,
+  HomeIcon,
+  SparklesIcon
+} from '@heroicons/react/24/outline';
 
 const Sidebar = () => {
   return (
-    <div className="w-64 h-screen bg-gradient-to-b from-white to-gray-50 border-r border-gray-200 shadow-lg flex flex-col hidden md:flex">
+    <aside className="w-64 h-screen bg-slate-950/80 backdrop-blur border-r border-white/10 flex-col hidden md:flex">
+      <div className="h-16 flex items-center justify-between px-5 border-b border-white/10">
+        <div className="flex items-center gap-2">
+          <div className="grid h-9 w-9 place-items-center rounded-lg bg-gray-950 text-white">
+            <SparklesIcon className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-base font-semibold text-white">MailGen AI</h1>
+            <p className="text-xs text-slate-400">Cold outreach</p>
+          </div>
+        </div>
 
-      {/* Logo + Back */}
-      <div className="h-16 flex items-center justify-between px-6 border-b border-gray-200">
-        <h1 className="text-2xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          MailGen AI
-        </h1>
-
-        {/* Back to Landing */}
         <NavLink
           to="/"
-          className="p-2 rounded-lg hover:bg-gray-100 transition"
+          className="p-2 rounded-md text-slate-400 hover:bg-white/10 hover:text-white transition"
+          title="Back to home"
         >
-          <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
+          <ArrowLeftIcon className="w-5 h-5" />
         </NavLink>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 px-4 py-6 space-y-3">
-
+      <nav className="flex-1 px-3 py-5 space-y-1">
         <NavLink
           to="/dashboard"
           className={({ isActive }) =>
-            `group flex items-center px-4 py-3 rounded-xl transition-all duration-300 
-            ${
+            `group flex items-center px-3 py-2.5 rounded-md text-sm font-medium transition ${
               isActive
-                ? "bg-blue-50 text-blue-700 shadow-sm border-l-4 border-blue-600"
-                : "text-gray-600 hover:bg-gray-100"
+                ? 'bg-sky-400/10 text-sky-200'
+                : 'text-slate-300 hover:bg-white/10 hover:text-white'
             }`
           }
         >
-          <HomeIcon className="w-5 h-5 mr-3 group-hover:scale-110 transition" />
+          <HomeIcon className="w-5 h-5 mr-3" />
           Dashboard
         </NavLink>
 
         <NavLink
           to="/emails"
           className={({ isActive }) =>
-            `group flex items-center px-4 py-3 rounded-xl transition-all duration-300 
-            ${
+            `group flex items-center px-3 py-2.5 rounded-md text-sm font-medium transition ${
               isActive
-                ? "bg-purple-50 text-purple-700 shadow-sm border-l-4 border-purple-600"
-                : "text-gray-600 hover:bg-gray-100"
+                ? 'bg-sky-400/10 text-sky-200'
+                : 'text-slate-300 hover:bg-white/10 hover:text-white'
             }`
           }
         >
-          <DocumentTextIcon className="w-5 h-5 mr-3 group-hover:scale-110 transition" />
+          <DocumentTextIcon className="w-5 h-5 mr-3" />
           Emails
         </NavLink>
-
       </nav>
 
-      {/* Footer */}
-      <div className="p-4 border-t border-gray-200 text-center text-xs text-gray-500">
-        🚀 Built with React + MERN
+      <div className="m-4 rounded-lg border border-white/10 bg-gradient-to-br from-sky-500/10 to-emerald-500/10 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Workspace</p>
+        <p className="mt-2 text-sm font-medium text-white">Resume + outreach</p>
+        <p className="mt-1 text-xs leading-5 text-slate-400">Generate, score, and reuse your best campaigns.</p>
       </div>
-    </div>
+    </aside>
   );
 };
 

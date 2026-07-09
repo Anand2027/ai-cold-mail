@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import api from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
 const Signup = () => {
     const [name, setName] = useState('');
@@ -9,6 +10,7 @@ const Signup = () => {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const { login } = useAuth();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -16,6 +18,12 @@ const Signup = () => {
         try {
             const { data } = await api.post('/auth/register', { name, email, password });
             toast.success(data.message);
+            if (data.token) {
+                login(data);
+                navigate('/dashboard');
+                return;
+            }
+            sessionStorage.setItem('pendingVerification', JSON.stringify({ userId: data.userId, email: data.email || email }));
             navigate('/verify-otp', { state: { userId: data.userId, email } });
         } catch (error) {
             toast.error(error.response?.data?.message || 'Registration failed');

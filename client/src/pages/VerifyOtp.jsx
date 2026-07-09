@@ -11,8 +11,16 @@ const VerifyOtp = () => {
     const navigate = useNavigate();
     const { login } = useAuth();
 
-    const userId = location.state?.userId;
-    const email = location.state?.email;
+    const pendingVerification = (() => {
+        try {
+            return JSON.parse(sessionStorage.getItem('pendingVerification') || '{}');
+        } catch {
+            return {};
+        }
+    })();
+
+    const userId = location.state?.userId || pendingVerification.userId;
+    const email = location.state?.email || pendingVerification.email;
 
     if (!userId) {
         navigate('/signup');
@@ -25,10 +33,24 @@ const VerifyOtp = () => {
         try {
             const { data } = await api.post('/auth/verify-otp', { userId, otp });
             login(data);
+            sessionStorage.removeItem('pendingVerification');
             toast.success('Email verified successfully!');
             navigate('/dashboard');
         } catch (error) {
             toast.error(error.response?.data?.message || 'Verification failed');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleResendOtp = async () => {
+        setLoading(true);
+        try {
+            const { data } = await api.post('/auth/resend-otp', { userId, email });
+            sessionStorage.setItem('pendingVerification', JSON.stringify({ userId: data.userId, email: data.email }));
+            toast.success(data.message || 'OTP sent again.');
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to resend OTP');
         } finally {
             setLoading(false);
         }
@@ -67,6 +89,14 @@ const VerifyOtp = () => {
                             {loading ? 'Verifying...' : 'Verify Email'}
                         </button>
                     </form>
+                    <button
+                        type="button"
+                        onClick={handleResendOtp}
+                        disabled={loading}
+                        className="mt-4 w-full text-sm font-medium text-primary-600 hover:text-primary-700 disabled:opacity-50"
+                    >
+                        Resend OTP
+                    </button>
                 </div>
             </div>
         </div>

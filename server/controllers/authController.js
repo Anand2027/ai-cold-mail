@@ -12,6 +12,23 @@ const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
+const shouldBypassOtp = process.env.SKIP_EMAIL_OTP === 'true';
+
+const sendOtpEmail = async (user, otp) => {
+  const message = [
+    `Your OTP for AI Cold Mail Generator is: ${otp}`,
+    '',
+    'This OTP is valid for 10 minutes.',
+    'If you did not request this, please ignore this email.'
+  ].join('\n');
+
+  await sendEmail({
+    email: user.email,
+    subject: 'Your OTP - AI Cold Mail Generator',
+    message
+  });
+};
+
 exports.registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -33,34 +50,61 @@ exports.registerUser = async (req, res) => {
       return res.status(400).json({ message: 'Name must be at least 2 characters long' });
     }
 
-    const userExists = await User.findOne({ email: email.toLowerCase() });
-
-    if (userExists) {
-      return res.status(400).json({ message: 'Email already registered. Please try logging in.' });
-    }
-
+    const normalizedEmail = email.toLowerCase().trim();
+    const userExists = await User.findOne({ email: normalizedEmail });
     const otp = generateOTP();
     const otpExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-    const user = await User.create({
-      name: name.trim(),
-      email: email.toLowerCase(),
-      password,
-      otp,
-      otpExpiry
-    });
+    if (userExists?.isVerified) {
+      return res.status(400).json({ message: 'Email already registered. Please try logging in.' });
+    }
 
-    // Send OTP email
-    const message = `Your OTP for verification is: ${otp}\n\nThis OTP is valid for 10 minutes.`;
+    let user = userExists;
+    if (user) {
+      user.name = name.trim();
+      user.password = password;
+      user.otp = otp;
+      user.otpExpiry = otpExpiry;
+      user.isVerified = false;
+      await user.save();
+    } else {
+      user = await User.create({
+        name: name.trim(),
+        email: normalizedEmail,
+        password,
+        otp,
+        otpExpiry,
+        isVerified: false
+      });
+    }
+
+    if (shouldBypassOtp) {
+      user.isVerified = true;
+      user.otp = undefined;
+      user.otpExpiry = undefined;
+      await user.save();
+
+      return res.status(201).json({
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        token: generateToken(user._id),
+        message: 'Account created and verified successfully.'
+      });
+    }
+
     try {
-      await sendEmail({ email: user.email, subject: 'Email Verification OTP - AI Cold Mail Generator', message });
+      await sendOtpEmail(user, otp);
     } catch (error) {
-      console.log('Email sending error:', error.message);
-      // Still allow registration even if email fails
+      console.error('OTP email sending error:', error.message);
+      return res.status(500).json({
+        message: 'Could not send OTP email. Please check email configuration and try again.',
+        error: error.message
+      });
     }
 
     res.status(201).json({
-      message: 'User registered successfully. Please verify OTP sent to your email.',
+      message: userExists ? 'OTP resent. Please verify your email.' : 'User registered successfully. Please verify OTP sent to your email.',
       userId: user._id,
       email: user.email
     });
@@ -138,8 +182,25 @@ exports.loginUser = async (req, res) => {
     }
 
     if (!user.isVerified) {
+      const otp = generateOTP();
+      user.otp = otp;
+      user.otpExpiry = Date.now() + 10 * 60 * 1000;
+      await user.save();
+
+      if (!shouldBypassOtp) {
+        try {
+          await sendOtpEmail(user, otp);
+        } catch (error) {
+          console.error('Login OTP email sending error:', error.message);
+          return res.status(500).json({
+            message: 'Could not send OTP email. Please check email configuration and try again.',
+            error: error.message
+          });
+        }
+      }
+
       return res.status(401).json({ 
-        message: 'Please verify your email first',
+        message: 'Please verify your email first. A new OTP has been sent.',
         userId: user._id
       });
     }
@@ -160,5 +221,45 @@ exports.loginUser = async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ message: 'Login failed', error: error.message });
+  }
+};
+
+exports.resendOTP = async (req, res) => {
+  try {
+    const { userId, email } = req.body;
+
+    if (!userId && !email) {
+      return res.status(400).json({ message: 'User ID or email is required' });
+    }
+
+    const user = userId
+      ? await User.findById(userId)
+      : await User.findOne({ email: email.toLowerCase().trim() });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ message: 'User already verified. Please login.' });
+    }
+
+    const otp = generateOTP();
+    user.otp = otp;
+    user.otpExpiry = Date.now() + 10 * 60 * 1000;
+    await user.save();
+
+    if (!shouldBypassOtp) {
+      await sendOtpEmail(user, otp);
+    }
+
+    res.status(200).json({
+      message: 'OTP sent successfully. Please check your email.',
+      userId: user._id,
+      email: user.email
+    });
+  } catch (error) {
+    console.error('Resend OTP error:', error);
+    res.status(500).json({ message: 'Failed to resend OTP', error: error.message });
   }
 };

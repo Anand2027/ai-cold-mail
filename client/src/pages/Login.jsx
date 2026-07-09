@@ -20,7 +20,18 @@ const Login = () => {
             toast.success('Logged in successfully!');
             navigate('/dashboard');
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Login failed');
+            const message = error.response?.data?.message || 'Login failed';
+            if (message.toLowerCase().includes('verify your email') && error.response?.data?.userId) {
+                toast.error('Please verify OTP sent to your email.');
+                sessionStorage.setItem('pendingVerification', JSON.stringify({ userId: error.response.data.userId, email }));
+                navigate('/verify-otp', { state: { userId: error.response.data.userId, email } });
+                return;
+            }
+            if (message === 'Invalid email or password' && import.meta.env.DEV) {
+                toast.error('Local app me naya account signup karo, deployed account yahan nahi milega.');
+            } else {
+                toast.error(message);
+            }
         } finally {
             setLoading(false);
         }
