@@ -7,6 +7,15 @@ const getFromName = () => process.env.EMAIL_FROM_NAME || "AI Cold Mail";
 
 const getHtmlMessage = (message) => message.replace(/\n/g, "<br>");
 
+const getEmailDiagnostics = () => ({
+    provider: process.env.BREVO_API_KEY ? "brevo-api" : "smtp",
+    brevoApiKeyConfigured: Boolean(process.env.BREVO_API_KEY),
+    emailFromConfigured: Boolean(getFromAddress()),
+    emailFromName: getFromName(),
+    smtpHostConfigured: Boolean(process.env.EMAIL_HOST),
+    smtpPort: process.env.EMAIL_PORT || "587",
+});
+
 const sendBrevoEmail = async (options) => {
     if (!process.env.BREVO_API_KEY) {
         throw new Error("Missing BREVO_API_KEY");
@@ -123,6 +132,8 @@ const sendSmtpEmail = async (options) => {
 
 const sendEmail = async (options) => {
     try {
+        console.log("Email provider selected:", getEmailDiagnostics());
+
         if (process.env.BREVO_API_KEY) {
             return await sendBrevoEmail(options);
         }
@@ -139,3 +150,4 @@ const sendEmail = async (options) => {
 };
 
 module.exports = sendEmail;
+module.exports.getEmailDiagnostics = getEmailDiagnostics;

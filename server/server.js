@@ -5,6 +5,7 @@ const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const aiRoutes = require('./routes/aiRoutes');
+const { getEmailDiagnostics } = require('./utils/emailService');
 
 // Load environment variables
 dotenv.config();
@@ -23,6 +24,7 @@ if (missingEnvVars.length > 0) {
 
 // Connect to MongoDB
 connectDB();
+console.log('Email diagnostics:', getEmailDiagnostics());
 
 const app = express();
 

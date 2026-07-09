@@ -14,6 +14,14 @@ const generateOTP = () => {
 
 const shouldBypassOtp = process.env.SKIP_EMAIL_OTP === 'true';
 
+const getOtpEmailErrorResponse = (error) => {
+  const detail = error.message || 'Unknown email error';
+  return {
+    message: `Could not send OTP email: ${detail}`,
+    error: detail
+  };
+};
+
 const sendOtpEmail = async (user, otp) => {
   const message = [
     `Your OTP for AI Cold Mail Generator is: ${otp}`,
@@ -97,10 +105,7 @@ exports.registerUser = async (req, res) => {
       await sendOtpEmail(user, otp);
     } catch (error) {
       console.error('OTP email sending error:', error.message);
-      return res.status(500).json({
-        message: 'Could not send OTP email. Please check email configuration and try again.',
-        error: error.message
-      });
+      return res.status(500).json(getOtpEmailErrorResponse(error));
     }
 
     res.status(201).json({
@@ -192,10 +197,7 @@ exports.loginUser = async (req, res) => {
           await sendOtpEmail(user, otp);
         } catch (error) {
           console.error('Login OTP email sending error:', error.message);
-          return res.status(500).json({
-            message: 'Could not send OTP email. Please check email configuration and try again.',
-            error: error.message
-          });
+          return res.status(500).json(getOtpEmailErrorResponse(error));
         }
       }
 
@@ -260,6 +262,6 @@ exports.resendOTP = async (req, res) => {
     });
   } catch (error) {
     console.error('Resend OTP error:', error);
-    res.status(500).json({ message: 'Failed to resend OTP', error: error.message });
+    res.status(500).json(getOtpEmailErrorResponse(error));
   }
 };
