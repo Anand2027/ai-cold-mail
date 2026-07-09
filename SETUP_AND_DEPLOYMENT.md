@@ -50,7 +50,14 @@ EMAIL_FROM=your_verified_sender_email@gmail.com
 FRONTEND_URL=http://localhost:5173
 ```
 
-For Brevo on Render, use:
+For Brevo on Render, use the API key method. This avoids SMTP connection timeouts on deployed hosts:
+```env
+BREVO_API_KEY=your_brevo_api_key
+EMAIL_FROM=your_verified_brevo_sender_email
+EMAIL_FROM_NAME=AI Cold Mail
+```
+
+SMTP fallback is still supported if you do not set `BREVO_API_KEY`:
 ```env
 EMAIL_HOST=smtp-relay.brevo.com
 EMAIL_PORT=587

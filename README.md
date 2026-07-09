@@ -82,13 +82,11 @@ It prevents bad pushes from making it effectively resolving broken dependencies 
    - **Build Command**: `npm install`
    - **Start Command**: `node server.js`  *(Make sure to use node instead of nodemon for production)*
    - **Instance Type**: Free
-6. Under **Environment Variables**, add all the variables from your `.env` file. For OTP email on Render, include:
-   - `EMAIL_HOST`: `smtp-relay.brevo.com` for Brevo or `smtp.gmail.com` for Gmail
-   - `EMAIL_PORT`: `587`
-   - `EMAIL_SECURE`: `false`
-   - `EMAIL_USER`: your SMTP login/email
-   - `EMAIL_PASS`: your SMTP key/app password
-   - `EMAIL_FROM`: a verified sender address from your email provider
+6. Under **Environment Variables**, add all the variables from your `.env` file. For OTP email on Render with Brevo, prefer the HTTPS API method:
+   - `BREVO_API_KEY`: your Brevo API key
+   - `EMAIL_FROM`: a sender address verified in Brevo
+   - `EMAIL_FROM_NAME`: `AI Cold Mail`
+   SMTP fallback is also supported with `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_SECURE`, `EMAIL_USER`, and `EMAIL_PASS`, but the API method avoids SMTP connection timeouts on deployed hosts.
 7. Click **Create Web Service**.
 
 ### Deploying Frontend on Vercel
