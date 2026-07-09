@@ -70,6 +70,24 @@ const extractResumeText = async (file) => {
   return '';
 };
 
+const getErrorMessage = (error) => (
+  error.response?.data?.error?.message
+  || error.response?.data?.message
+  || error.message
+  || 'Unknown server error'
+);
+
+const safeExtractResumeText = async (file, { required = false } = {}) => {
+  try {
+    return await extractResumeText(file);
+  } catch (error) {
+    const message = `Could not read resume text: ${getErrorMessage(error)}`;
+    console.error('Resume parse error:', message);
+    if (required) throw new Error(message);
+    return '';
+  }
+};
+
 const calculateAtsScore = ({ resumeText, role, skills, experience, jobDescription }) => {
   if (!resumeText) return null;
 
@@ -142,7 +160,7 @@ exports.generateEmail = async (req, res) => {
       return res.status(400).json({ message: 'Campaign context cannot exceed 5000 characters' });
     }
 
-    const resumeText = await extractResumeText(req.file);
+    const resumeText = await safeExtractResumeText(req.file);
     const atsResult = calculateAtsScore({ resumeText, role, skills, experience, jobDescription });
 
     // Call Groq API (Free tier - No quota issues!)
@@ -370,8 +388,7 @@ ATS score: ${atsResult ? `${atsResult.score}/100` : 'No resume uploaded'}
       });
     }
 
-    // Save to history
-    const historyEntry = await EmailHistory.create({
+    const historyPayload = {
       userId: req.user._id,
       prompt: structuredContext.trim(),
       subject: emailData.subject,
@@ -381,11 +398,24 @@ ATS score: ${atsResult ? `${atsResult.score}/100` : 'No resume uploaded'}
       toneVariants: emailData.toneVariants,
       atsScore: atsResult?.score,
       atsFeedback: atsResult?.feedback || []
-    });
+    };
+
+    let historyEntry;
+    try {
+      historyEntry = await EmailHistory.create(historyPayload);
+    } catch (historyError) {
+      console.error('Email history save failed:', getErrorMessage(historyError));
+      historyEntry = {
+        ...historyPayload,
+        _id: `unsaved-${Date.now()}`,
+        createdAt: new Date()
+      };
+    }
 
     res.status(200).json(historyEntry);
   } catch (error) {
-    console.error('AI Generation Error:', error.response?.data || error.message);
+    const detail = getErrorMessage(error);
+    console.error('AI Generation Error:', error.response?.data || detail);
     
     if (error.response?.status === 429) {
       return res.status(429).json({ 
@@ -395,8 +425,8 @@ ATS score: ${atsResult ? `${atsResult.score}/100` : 'No resume uploaded'}
     }
 
     res.status(500).json({ 
-      message: 'Failed to generate email', 
-      error: error.response?.data?.error?.message || error.message 
+      message: `Failed to generate email: ${detail}`,
+      error: detail
     });
   }
 };
@@ -420,7 +450,7 @@ exports.checkAts = async (req, res) => {
       return res.status(400).json({ message: 'Resume is required for ATS check' });
     }
 
-    const resumeText = await extractResumeText(req.file);
+    const resumeText = await safeExtractResumeText(req.file, { required: true });
     if (!resumeText.trim()) {
       return res.status(400).json({ message: 'Could not read text from this resume' });
     }
@@ -432,10 +462,11 @@ exports.checkAts = async (req, res) => {
       resumeWords: resumeText.split(/\s+/).filter(Boolean).length
     });
   } catch (error) {
-    console.error('ATS Check Error:', error.message);
+    const detail = getErrorMessage(error);
+    console.error('ATS Check Error:', detail);
     res.status(500).json({
-      message: 'Failed to check ATS score',
-      error: error.message
+      message: `Failed to check ATS score: ${detail}`,
+      error: detail
     });
   }
 };

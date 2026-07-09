@@ -48,6 +48,13 @@ const getAtsRange = (score) => {
     return [...atsRanges].reverse().find((range) => score >= range.min) || atsRanges[0];
 };
 
+const getApiErrorMessage = (error, fallback) => (
+    error.response?.data?.message
+    || error.response?.data?.error
+    || error.message
+    || fallback
+);
+
 const getVariants = (result) => {
     if (!result) return [];
     if (Array.isArray(result.toneVariants) && result.toneVariants.length) return result.toneVariants;
@@ -63,11 +70,11 @@ const getVariants = (result) => {
 
 const Field = ({ label, field, value, onChange, placeholder }) => (
     <label className="block">
-        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</span>
         <input
             value={value}
             onChange={(event) => onChange(field, event.target.value)}
-            className="mt-2 w-full rounded-md border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+            className="mt-2 w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10"
             placeholder={placeholder}
         />
     </label>
@@ -86,6 +93,64 @@ const formatVariantPack = (variant) => [
     'Follow-up Email:',
     variant.followUpEmail
 ].join('\n');
+
+const AtsScoreGraph = ({ score = 0, range }) => {
+    const safeScore = Math.max(0, Math.min(100, Number(score) || 0));
+    const circumference = 2 * Math.PI * 44;
+    const offset = circumference - (safeScore / 100) * circumference;
+    const bars = [42, 58, 76, safeScore];
+
+    return (
+        <div className="flex flex-col items-center gap-4 sm:flex-row">
+            <div className="relative h-32 w-32">
+                <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
+                    <circle cx="60" cy="60" r="44" fill="none" stroke="rgb(30 41 59)" strokeWidth="12" />
+                    <circle
+                        cx="60"
+                        cy="60"
+                        r="44"
+                        fill="none"
+                        stroke="url(#atsGradient)"
+                        strokeLinecap="round"
+                        strokeWidth="12"
+                        strokeDasharray={circumference}
+                        strokeDashoffset={offset}
+                    />
+                    <defs>
+                        <linearGradient id="atsGradient" x1="0" x2="1" y1="0" y2="1">
+                            <stop offset="0%" stopColor="#22d3ee" />
+                            <stop offset="55%" stopColor="#6366f1" />
+                            <stop offset="100%" stopColor="#34d399" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <div className="absolute inset-0 grid place-items-center text-center">
+                    <div>
+                        <p className="text-3xl font-semibold text-slate-50">{safeScore}</p>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">ATS</p>
+                    </div>
+                </div>
+            </div>
+            <div className="w-full min-w-0">
+                <div className="mb-3 flex items-center justify-between">
+                    <span className="text-sm font-semibold text-slate-50">Resume match graph</span>
+                    {range && <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${range.color}`}>{range.label}</span>}
+                </div>
+                <div className="grid h-28 grid-cols-4 items-end gap-3 rounded-lg border border-slate-700 bg-slate-950 p-3">
+                    {bars.map((value, index) => (
+                        <div key={`${value}-${index}`} className="flex h-full flex-col justify-end gap-2">
+                            <div
+                                className={`rounded-t-md ${index === 3 ? 'bg-gradient-to-t from-emerald-500 to-cyan-300' : 'bg-slate-700'}`}
+                                style={{ height: `${Math.max(12, value)}%` }}
+                            />
+                            <span className="text-center text-[10px] font-semibold text-slate-500">{['Base', 'Skills', 'JD', 'You'][index]}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const Dashboard = () => {
     const { logout } = useAuth();
@@ -138,7 +203,7 @@ const Dashboard = () => {
             const { data } = await api.get('/ai/history');
             setHistory(Array.isArray(data) ? data.slice(0, 5) : []);
         } catch (error) {
-            const message = error.response?.data?.message || 'History load failed';
+            const message = getApiErrorMessage(error, 'History load failed');
             if (!handleAuthError(message, error.response?.status)) toast.error(message);
         } finally {
             setHistoryLoading(false);
@@ -199,7 +264,7 @@ const Dashboard = () => {
             setHistory((current) => [data, ...current.filter((item) => item._id !== data._id)].slice(0, 5));
             toast.success('Mail pack generated!');
         } catch (error) {
-            const message = error.response?.data?.message || 'Failed to generate. Please try again.';
+            const message = getApiErrorMessage(error, 'Failed to generate. Please try again.');
             if (!handleAuthError(message, error.response?.status)) toast.error(message);
         } finally {
             setLoading(false);
@@ -219,7 +284,7 @@ const Dashboard = () => {
             setMode('ats');
             toast.success('ATS score checked!');
         } catch (error) {
-            const message = error.response?.data?.message || 'Failed to check ATS score.';
+            const message = getApiErrorMessage(error, 'Failed to check ATS score.');
             if (!handleAuthError(message, error.response?.status)) toast.error(message);
         } finally {
             setLoading(false);
@@ -242,48 +307,48 @@ const Dashboard = () => {
     };
 
     const ResultCard = ({ title, content, type, icon: Icon }) => (
-        <div className="rounded-lg border border-white/80 bg-white/85 p-5 shadow-sm backdrop-blur">
+        <div className="rounded-lg border border-slate-700/80 bg-slate-900/85 p-5 shadow-sm shadow-black/20 backdrop-blur">
             <div className="mb-4 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                     {Icon && (
-                        <div className="grid h-8 w-8 place-items-center rounded-md bg-sky-50 text-sky-600">
+                        <div className="grid h-8 w-8 place-items-center rounded-md bg-cyan-400/10 text-cyan-300">
                             <Icon className="h-4 w-4" />
                         </div>
                     )}
-                    <h3 className="font-semibold text-gray-950">{title}</h3>
+                    <h3 className="font-semibold text-slate-50">{title}</h3>
                 </div>
                 <button
                     onClick={() => copyToClipboard(content, type)}
-                    className="grid h-8 w-8 place-items-center rounded-md text-gray-400 hover:bg-gray-50 hover:text-sky-600"
+                    className="grid h-8 w-8 place-items-center rounded-md text-slate-400 hover:bg-slate-800 hover:text-cyan-300"
                     title={`Copy ${title}`}
                     type="button"
                 >
                     {copied === type ? <CheckIcon className="h-5 w-5 text-emerald-500" /> : <ClipboardDocumentIcon className="h-5 w-5" />}
                 </button>
             </div>
-            <p className="whitespace-pre-wrap text-sm leading-7 text-gray-600">{content}</p>
+            <p className="whitespace-pre-wrap text-sm leading-7 text-slate-300">{content}</p>
         </div>
     );
 
     return (
-        <div className="mx-auto max-w-[1480px]">
-            <div className="mb-5 overflow-hidden rounded-xl border border-white/70 bg-white/75 shadow-sm backdrop-blur">
+        <div className="mx-auto max-w-[1480px] pb-12">
+            <div className="mb-5 overflow-hidden rounded-xl border border-slate-700 bg-slate-950 shadow-xl shadow-slate-950/20">
                 <div className="h-1.5 bg-gradient-to-r from-sky-500 via-violet-500 to-emerald-500" />
                 <div className="p-5">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                     <div>
-                        <p className="text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-sky-700 to-violet-700">AI Cold Outreach Suite</p>
-                        <h1 className="mt-1 text-2xl font-semibold tracking-normal text-gray-950">Cold mail, resume ATS, and follow-up in one clean workspace</h1>
-                        <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">Fill details manually or upload resume. Generate 5 polished outreach tones and check ATS without leaving the screen.</p>
+                        <p className="text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-violet-300">AI Cold Outreach Suite</p>
+                        <h1 className="mt-1 text-2xl font-semibold tracking-normal text-slate-50">Cold mail, resume ATS, and follow-up in one clean workspace</h1>
+                        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">Fill details manually or upload resume. Generate 5 polished outreach tones and check ATS without leaving the screen.</p>
                     </div>
                     <div className="grid grid-cols-2 gap-2 sm:flex">
-                        <div className="rounded-lg border border-sky-100 bg-gradient-to-br from-sky-50 to-blue-50 px-3 py-2">
-                            <p className="text-xs text-sky-600">Tones</p>
-                            <p className="text-sm font-semibold text-sky-950">5 variants</p>
+                        <div className="rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-3 py-2">
+                            <p className="text-xs text-cyan-300">Tones</p>
+                            <p className="text-sm font-semibold text-slate-50">5 variants</p>
                         </div>
-                        <div className="rounded-lg border border-emerald-100 bg-gradient-to-br from-emerald-50 to-teal-50 px-3 py-2">
-                            <p className="text-xs text-emerald-600">ATS</p>
-                            <p className="text-sm font-semibold text-emerald-950">Instant score</p>
+                        <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-2">
+                            <p className="text-xs text-emerald-300">ATS</p>
+                            <p className="text-sm font-semibold text-slate-50">Instant score</p>
                         </div>
                     </div>
                 </div>
@@ -291,44 +356,44 @@ const Dashboard = () => {
             </div>
 
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(420px,0.95fr)_minmax(560px,1.05fr)]">
-                <section className="overflow-hidden rounded-xl border border-white/70 bg-white/80 shadow-sm backdrop-blur">
+                <section className="rounded-xl border border-slate-700 bg-slate-950 shadow-xl shadow-slate-950/20">
                     <div className={`h-1 bg-gradient-to-r ${selectedToneMeta.color}`} />
-                    <div className="border-b border-white/70 bg-gradient-to-br from-white/90 to-sky-50/80 px-6 py-5">
+                    <div className="border-b border-slate-800 bg-slate-900 px-6 py-5">
                         <div className="flex items-center justify-between gap-4">
                             <div className="flex items-center gap-3">
                                 <div className={`grid h-11 w-11 place-items-center rounded-lg bg-gradient-to-br ${selectedToneMeta.color} text-white shadow-sm`}>
                                     <UserCircleIcon className="h-6 w-6" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-gray-950">Input Workbench</h2>
-                                    <p className="text-sm text-gray-500">Manual bhar sakte ho, ya sirf resume upload karo.</p>
+                                    <h2 className="text-lg font-semibold text-slate-50">Input Workbench</h2>
+                                    <p className="text-sm text-slate-400">Manual bhar sakte ho, ya sirf resume upload karo.</p>
                                 </div>
                             </div>
-                            <div className="rounded-lg border border-white/80 bg-white/60 px-3 py-2 text-right shadow-inner">
-                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Ready</p>
-                                <p className="text-lg font-semibold text-gray-950">{readiness}%</p>
+                            <div className="rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-right shadow-inner">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Ready</p>
+                                <p className="text-lg font-semibold text-slate-50">{readiness}%</p>
                             </div>
                         </div>
 
-                        <div className="mt-5 grid grid-cols-2 gap-2 rounded-lg border border-white/80 bg-white/60 p-1 shadow-inner">
+                        <div className="mt-5 grid grid-cols-2 gap-2 rounded-lg border border-slate-700 bg-slate-950/60 p-1 shadow-inner">
                             <button
                                 type="button"
                                 onClick={() => setMode('generate')}
-                                className={`rounded-md px-3 py-2 text-sm font-semibold transition-colors ${mode === 'generate' ? 'bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+                                className={`rounded-md px-3 py-2 text-sm font-semibold transition-colors ${mode === 'generate' ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-sm' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'}`}
                             >
                                 Generate Mail
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setMode('ats')}
-                                className={`rounded-md px-3 py-2 text-sm font-semibold transition-colors ${mode === 'ats' ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+                                className={`rounded-md px-3 py-2 text-sm font-semibold transition-colors ${mode === 'ats' ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-sm' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'}`}
                             >
                                 Check ATS
                             </button>
                         </div>
                     </div>
 
-                    <form onSubmit={handleGenerate} className="space-y-5 bg-gradient-to-br from-white/70 via-sky-50/50 to-violet-50/40 p-6">
+                    <form onSubmit={handleGenerate} className="space-y-5 bg-slate-950 p-6">
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <Field label="Role" field="role" value={form.role} onChange={updateField} placeholder="Backend Engineer" />
                             <Field label="Experience" field="experience" value={form.experience} onChange={updateField} placeholder="2 years / Fresher" />
@@ -342,7 +407,7 @@ const Dashboard = () => {
                         </div>
 
                         <div>
-                            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Tone style</span>
+                            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Tone style</span>
                             <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
                                 {toneOptions.map((tone) => (
                                     <button
@@ -352,7 +417,7 @@ const Dashboard = () => {
                                         className={`rounded-md border px-3 py-2.5 text-left text-sm font-medium transition ${
                                             form.tone === tone.label
                                                 ? `${tone.soft} shadow-sm`
-                                                : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                                                : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-600 hover:bg-slate-800'
                                         }`}
                                     >
                                         <span className={`mb-2 block h-1 w-10 rounded-full bg-gradient-to-r ${tone.color}`} />
@@ -363,45 +428,45 @@ const Dashboard = () => {
                         </div>
 
                         <label className="block">
-                            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">JD / hiring context</span>
+                            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">JD / hiring context</span>
                             <textarea
                                 value={form.jobDescription}
                                 onChange={(event) => updateField('jobDescription', event.target.value)}
                                 rows={4}
-                                className="mt-2 w-full resize-none rounded-md border border-gray-200 px-3 py-3 text-sm text-gray-900 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                                className="mt-2 w-full resize-none rounded-md border border-slate-700 bg-slate-950/70 px-3 py-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10"
                                 placeholder="Paste JD or company context. Optional but improves mail and ATS."
                             />
                         </label>
 
                         <label className="block">
-                            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Extra instruction</span>
+                            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Extra instruction</span>
                             <textarea
                                 value={form.prompt}
                                 onChange={(event) => updateField('prompt', event.target.value)}
                                 rows={3}
-                                className="mt-2 w-full resize-none rounded-md border border-gray-200 px-3 py-3 text-sm text-gray-900 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                                className="mt-2 w-full resize-none rounded-md border border-slate-700 bg-slate-950/70 px-3 py-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10"
                                 placeholder="Shorter mail, referral ask, mention project, etc."
                             />
                         </label>
 
-                        <div className="rounded-lg border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-emerald-50 p-4">
+                        <div className="rounded-lg border border-slate-700 bg-slate-900 p-4">
                             <div className="flex items-start gap-3">
                                 <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-md bg-gradient-to-br from-sky-600 to-emerald-600 text-white shadow-sm">
                                     <DocumentArrowUpIcon className="h-5 w-5" />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <p className="text-sm font-semibold text-gray-950">Resume upload</p>
-                                    <p className="mt-1 text-xs leading-5 text-gray-600">Manual fields skip karne hain to resume upload karo. PDF, DOCX, TXT up to 5MB.</p>
+                                    <p className="text-sm font-semibold text-slate-50">Resume upload</p>
+                                    <p className="mt-1 text-xs leading-5 text-slate-400">Manual fields skip karne hain to resume upload karo. PDF, DOCX, TXT up to 5MB.</p>
                                     <input
                                         type="file"
                                         accept=".pdf,.docx,.txt"
                                         onChange={handleResumeChange}
-                                        className="mt-3 block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-sky-700 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-sky-800"
+                                        className="mt-3 block w-full text-sm text-slate-400 file:mr-3 file:rounded-md file:border-0 file:bg-cyan-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-cyan-700"
                                     />
                                     {resume && (
-                                        <div className="mt-3 flex items-center justify-between gap-3 rounded-md border border-sky-100 bg-white/90 px-3 py-2">
-                                            <span className="truncate text-sm font-medium text-gray-700">{resume.name}</span>
-                                            <button type="button" onClick={() => setResume(null)} className="grid h-7 w-7 place-items-center rounded-md text-gray-400 hover:bg-red-50 hover:text-red-500">
+                                        <div className="mt-3 flex items-center justify-between gap-3 rounded-md border border-slate-700 bg-slate-950 px-3 py-2">
+                                            <span className="truncate text-sm font-medium text-slate-300">{resume.name}</span>
+                                            <button type="button" onClick={() => setResume(null)} className="grid h-7 w-7 place-items-center rounded-md text-slate-400 hover:bg-red-500/10 hover:text-red-300">
                                                 <XMarkIcon className="h-4 w-4" />
                                             </button>
                                         </div>
@@ -432,24 +497,24 @@ const Dashboard = () => {
                     </form>
                 </section>
 
-                <section className="overflow-hidden rounded-xl border border-white/70 bg-white/80 shadow-sm backdrop-blur">
+                <section className="overflow-hidden rounded-xl border border-slate-700 bg-slate-950 shadow-xl shadow-slate-950/20">
                     <div className="h-1 bg-gradient-to-r from-violet-500 via-sky-500 to-emerald-500" />
-                    <div className="border-b border-white/70 bg-gradient-to-br from-white/90 to-violet-50/80 px-6 py-5">
+                    <div className="border-b border-slate-800 bg-slate-900 px-6 py-5">
                         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                             <div className="flex items-center gap-3">
                                 <div className={`grid h-11 w-11 place-items-center rounded-lg bg-gradient-to-br ${mode === 'ats' ? 'from-emerald-600 to-teal-600' : selectedToneMeta.color} text-white shadow-sm`}>
                                     {mode === 'ats' ? <ChartBarIcon className="h-5 w-5" /> : <EnvelopeIcon className="h-5 w-5" />}
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-gray-950">{mode === 'ats' ? 'ATS Report' : 'Response Preview'}</h2>
-                                    <p className="text-sm text-gray-500">Output, copy actions, aur recent mails yahin rahenge.</p>
+                                    <h2 className="text-lg font-semibold text-slate-50">{mode === 'ats' ? 'ATS Report' : 'Response Preview'}</h2>
+                                    <p className="text-sm text-slate-400">Output, copy actions, aur recent mails yahin rahenge.</p>
                                 </div>
                             </div>
                             {selectedVariant && mode === 'generate' && (
                                 <button
                                     type="button"
                                     onClick={() => copyToClipboard(formatVariantPack(selectedVariant), 'full-pack')}
-                                    className="inline-flex items-center justify-center gap-2 rounded-md border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-semibold text-sky-800 transition hover:bg-sky-100"
+                                    className="inline-flex items-center justify-center gap-2 rounded-md border border-cyan-400/30 bg-cyan-400/10 px-4 py-2.5 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-400/15"
                                 >
                                     {copied === 'full-pack' ? <CheckIcon className="h-4 w-4 text-emerald-500" /> : <ClipboardDocumentIcon className="h-4 w-4" />}
                                     Copy full pack
@@ -458,30 +523,14 @@ const Dashboard = () => {
                         </div>
                     </div>
 
-                    <div className="h-[calc(100vh-12rem)] min-h-[680px] overflow-y-auto bg-gradient-to-br from-sky-50/80 via-violet-50/60 to-emerald-50/70 p-5">
+                    <div className="bg-slate-950 p-5 pb-10">
                         {visibleAts?.atsScore && (
-                            <div className="mb-5 rounded-lg border border-white/80 bg-white/85 p-5 shadow-sm backdrop-blur">
-                                <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-                                    <div>
-                                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">ATS Score</p>
-                                        <div className="mt-2 flex items-center gap-3">
-                                            <p className="text-4xl font-semibold text-gray-950">{visibleAts.atsScore}/100</p>
-                                            {atsRange && <span className={`rounded-full border px-3 py-1 text-sm font-semibold ${atsRange.color}`}>{atsRange.label}</span>}
-                                        </div>
-                                    </div>
-                                    <div className="w-full md:max-w-xs">
-                                        <div className="h-3 overflow-hidden rounded-full bg-gray-100">
-                                            <div className={`h-full rounded-full ${atsRange?.bar || 'bg-sky-600'}`} style={{ width: `${visibleAts.atsScore}%` }} />
-                                        </div>
-                                        <div className="mt-3 grid grid-cols-4 gap-2 text-center text-[11px] leading-4 text-gray-500">
-                                            {atsRanges.map((range) => <span key={range.label}>{range.label}<br />{range.range}</span>)}
-                                        </div>
-                                    </div>
-                                </div>
+                            <div className="mb-5 rounded-lg border border-slate-700/80 bg-slate-900/85 p-5 shadow-sm shadow-black/20 backdrop-blur">
+                                <AtsScoreGraph score={visibleAts.atsScore} range={atsRange} />
                                 {visibleAts.atsFeedback?.length > 0 && (
                                     <div className="mt-5 grid grid-cols-1 gap-2 md:grid-cols-2">
                                         {visibleAts.atsFeedback.map((item) => (
-                                            <p key={item} className="rounded-md bg-sky-50 px-3 py-2 text-xs leading-5 text-sky-800">{item}</p>
+                                            <p key={item} className="rounded-md bg-cyan-400/10 px-3 py-2 text-xs leading-5 text-cyan-100">{item}</p>
                                         ))}
                                     </div>
                                 )}
@@ -490,10 +539,10 @@ const Dashboard = () => {
 
                         {mode === 'generate' && selectedVariant ? (
                             <div className="space-y-4">
-                                <div className="rounded-lg border border-white/80 bg-white/85 p-4 shadow-sm backdrop-blur">
+                                <div className="rounded-lg border border-slate-700/80 bg-slate-900/85 p-4 shadow-sm shadow-black/20 backdrop-blur">
                                     <div className="mb-3 flex items-center justify-between gap-3">
-                                        <p className="text-sm font-semibold text-gray-950">Tone variants</p>
-                                        <span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700">5 versions</span>
+                                        <p className="text-sm font-semibold text-slate-50">Tone variants</p>
+                                        <span className="rounded-full bg-cyan-400/10 px-2.5 py-1 text-xs font-semibold text-cyan-200">5 versions</span>
                                     </div>
                                     <div className="grid grid-cols-1 gap-2 md:grid-cols-5">
                                         {variants.map((variant, index) => (
@@ -501,11 +550,11 @@ const Dashboard = () => {
                                                 key={variant.tone}
                                                 type="button"
                                                 onClick={() => setSelectedToneIndex(index)}
-                                                className={`rounded-md border p-3 text-left transition ${selectedToneIndex === index ? 'border-sky-300 bg-sky-50 text-sky-900 shadow-sm' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'}`}
+                                                className={`rounded-md border p-3 text-left transition ${selectedToneIndex === index ? 'border-cyan-400/60 bg-cyan-400/10 text-cyan-50 shadow-sm' : 'border-slate-700 bg-slate-950 text-slate-300 hover:border-slate-600 hover:bg-slate-800'}`}
                                             >
                                                 <span className={`mb-2 block h-1 w-8 rounded-full bg-gradient-to-r ${toneOptions[index]?.color || 'from-sky-500 to-blue-600'}`} />
                                                 <p className="text-sm font-semibold">{variant.tone}</p>
-                                                <p className="mt-1 text-xs text-gray-500">Score {variant.score || 85}/100</p>
+                                                <p className="mt-1 text-xs text-slate-500">Score {variant.score || 85}/100</p>
                                             </button>
                                         ))}
                                     </div>
@@ -517,42 +566,42 @@ const Dashboard = () => {
                                 <ResultCard title="Follow-up Email" icon={ClockIcon} content={selectedVariant.followUpEmail} type={`followup-${selectedToneIndex}`} />
                             </div>
                         ) : mode === 'ats' && atsOnlyResult ? (
-                            <div className="rounded-lg border border-white/80 bg-white/85 p-8 text-center shadow-sm backdrop-blur">
+                            <div className="rounded-lg border border-slate-700/80 bg-slate-900/85 p-8 text-center shadow-sm shadow-black/20 backdrop-blur">
                                 <CheckCircleIcon className="mx-auto h-12 w-12 text-emerald-600" />
-                                <h3 className="mt-4 text-lg font-semibold text-gray-950">ATS check complete</h3>
-                                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">Feedback upar diya hai. Resume improve karke phir Generate Mail se cold outreach bana sakte ho.</p>
+                                <h3 className="mt-4 text-lg font-semibold text-slate-50">ATS check complete</h3>
+                                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-400">Feedback upar diya hai. Resume improve karke phir Generate Mail se cold outreach bana sakte ho.</p>
                             </div>
                         ) : (
-                            <div className="flex min-h-[420px] flex-col justify-center rounded-lg border border-white/80 bg-gradient-to-br from-white/90 via-sky-50/90 to-violet-50/90 px-8 text-center shadow-sm backdrop-blur">
-                                <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-sky-50">
-                                    <EnvelopeIcon className="h-8 w-8 text-sky-700" />
+                            <div className="flex min-h-[420px] flex-col justify-center rounded-lg border border-slate-700/80 bg-slate-900/85 px-8 text-center shadow-sm shadow-black/20 backdrop-blur">
+                                <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-cyan-400/10">
+                                    <EnvelopeIcon className="h-8 w-8 text-cyan-300" />
                                 </div>
-                                <h3 className="mt-5 text-xl font-semibold text-gray-950">Response yahan preview hoga</h3>
-                                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">Mail generate karo ya ATS check chalao. Right panel clean output ke liye reserved hai.</p>
+                                <h3 className="mt-5 text-xl font-semibold text-slate-50">Response yahan preview hoga</h3>
+                                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-400">Mail generate karo ya ATS check chalao. Right panel clean output ke liye reserved hai.</p>
                             </div>
                         )}
 
-                        <div className="mt-5 rounded-lg border border-white/80 bg-white/85 p-5 shadow-sm backdrop-blur">
+                        <div className="mt-5 mb-4 rounded-lg border border-slate-700/80 bg-slate-900/85 p-5 shadow-sm shadow-black/20 backdrop-blur">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <h3 className="font-semibold text-gray-950">Recent 5 emails</h3>
-                                    <p className="text-sm text-gray-500">Purane campaigns quick reopen ke liye.</p>
+                                    <h3 className="font-semibold text-slate-50">Recent 5 emails</h3>
+                                    <p className="text-sm text-slate-400">Purane campaigns quick reopen ke liye.</p>
                                 </div>
-                                <button type="button" onClick={loadHistory} className="grid h-9 w-9 place-items-center rounded-md text-gray-400 hover:bg-gray-50 hover:text-sky-600">
+                                <button type="button" onClick={loadHistory} className="grid h-9 w-9 place-items-center rounded-md text-slate-400 hover:bg-slate-800 hover:text-cyan-300">
                                     <ArrowPathIcon className={`h-5 w-5 ${historyLoading ? 'animate-spin' : ''}`} />
                                 </button>
                             </div>
                             <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-5">
                                 {historyLoading ? (
-                                    <div className="rounded-md bg-gray-50 p-4 text-sm text-gray-500 lg:col-span-5">Loading history...</div>
+                                    <div className="rounded-md bg-slate-950 p-4 text-sm text-slate-400 lg:col-span-5">Loading history...</div>
                                 ) : history.length ? history.map((item) => (
-                                    <button key={item._id} type="button" onClick={() => loadHistoryItem(item)} className="rounded-md border border-gray-200 bg-gray-50 p-3 text-left transition hover:border-sky-200 hover:bg-sky-50">
-                                        <ClockIcon className="mb-2 h-4 w-4 text-sky-700" />
-                                        <p className="truncate text-sm font-semibold text-gray-900">{item.subject}</p>
-                                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500">{item.emailBody}</p>
+                                    <button key={item._id} type="button" onClick={() => loadHistoryItem(item)} className="rounded-md border border-slate-700 bg-slate-950 p-3 text-left transition hover:border-cyan-400/40 hover:bg-slate-800">
+                                        <ClockIcon className="mb-2 h-4 w-4 text-cyan-300" />
+                                        <p className="truncate text-sm font-semibold text-slate-100">{item.subject}</p>
+                                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{item.emailBody}</p>
                                     </button>
                                 )) : (
-                                    <div className="rounded-md bg-gray-50 p-4 text-sm text-gray-500 lg:col-span-5">Generate first mail and old emails will appear here.</div>
+                                    <div className="rounded-md bg-slate-950 p-4 text-sm text-slate-400 lg:col-span-5">Generate first mail and old emails will appear here.</div>
                                 )}
                             </div>
                         </div>
