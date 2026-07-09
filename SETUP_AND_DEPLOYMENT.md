@@ -43,7 +43,21 @@ JWT_SECRET=your_very_secure_random_secret_key_change_this
 GROQ_API_KEY=gsk_xxxxx
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=xxxx_xxxx_xxxx_xxxx (16-char app password)
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_SECURE=false
+EMAIL_FROM=your_verified_sender_email@gmail.com
 FRONTEND_URL=http://localhost:5173
+```
+
+For Brevo on Render, use:
+```env
+EMAIL_HOST=smtp-relay.brevo.com
+EMAIL_PORT=587
+EMAIL_SECURE=false
+EMAIL_USER=your_brevo_smtp_login
+EMAIL_PASS=your_brevo_smtp_key
+EMAIL_FROM=your_verified_brevo_sender_email
 ```
 
 Create `.env` in `client/` directory:

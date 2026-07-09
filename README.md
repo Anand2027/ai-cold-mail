@@ -82,7 +82,13 @@ It prevents bad pushes from making it effectively resolving broken dependencies 
    - **Build Command**: `npm install`
    - **Start Command**: `node server.js`  *(Make sure to use node instead of nodemon for production)*
    - **Instance Type**: Free
-6. Under **Environment Variables**, add all the variables from your `.env` file (e.g. `MONGO_URI`, `JWT_SECRET`, `AI_API_KEY`).
+6. Under **Environment Variables**, add all the variables from your `.env` file. For OTP email on Render, include:
+   - `EMAIL_HOST`: `smtp-relay.brevo.com` for Brevo or `smtp.gmail.com` for Gmail
+   - `EMAIL_PORT`: `587`
+   - `EMAIL_SECURE`: `false`
+   - `EMAIL_USER`: your SMTP login/email
+   - `EMAIL_PASS`: your SMTP key/app password
+   - `EMAIL_FROM`: a verified sender address from your email provider
 7. Click **Create Web Service**.
 
 ### Deploying Frontend on Vercel

@@ -1,28 +1,59 @@
 const nodemailer = require("nodemailer");
 
+const getSmtpConfig = () => {
+    const host = process.env.EMAIL_HOST || "smtp-relay.brevo.com";
+    const port = Number(process.env.EMAIL_PORT || 587);
+    const secure = process.env.EMAIL_SECURE
+        ? process.env.EMAIL_SECURE === "true"
+        : port === 465;
+
+    const required = {
+        EMAIL_HOST: host,
+        EMAIL_PORT: port,
+        EMAIL_USER: process.env.EMAIL_USER,
+        EMAIL_PASS: process.env.EMAIL_PASS,
+    };
+
+    const missing = Object.entries(required)
+        .filter(([, value]) => !value)
+        .map(([key]) => key);
+
+    if (missing.length > 0) {
+        throw new Error(`Missing email environment variables: ${missing.join(", ")}`);
+    }
+
+    return {
+        host,
+        port,
+        secure,
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+        },
+        requireTLS: !secure,
+        connectionTimeout: 60000,
+        greetingTimeout: 30000,
+        socketTimeout: 60000,
+        tls: {
+            servername: host,
+        },
+    };
+};
+
 const sendEmail = async (options) => {
     try {
-        const transporter = nodemailer.createTransport({
-            host: process.env.EMAIL_HOST,
-            port: Number(process.env.EMAIL_PORT),
-            secure: false, // Port 587 ke liye false
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
-            },
-            connectionTimeout: 30000,
-            greetingTimeout: 30000,
-            socketTimeout: 30000,
-        });
+        const transporter = nodemailer.createTransport(getSmtpConfig());
 
         // SMTP Connection Test
         await transporter.verify();
-        console.log("✅ Brevo SMTP Connected Successfully");
+        console.log("Email SMTP connected successfully");
+
+        const fromAddress = process.env.EMAIL_FROM || process.env.EMAIL_USER;
 
         const mailOptions = {
             from: {
                 name: "AI Cold Mail",
-                address: "anandswaroopgupta455@gmail.com", // Verified Sender Email
+                address: fromAddress,
             },
             to: options.email,
             subject: options.subject,
@@ -32,7 +63,7 @@ const sendEmail = async (options) => {
 
         const info = await transporter.sendMail(mailOptions);
 
-        console.log("✅ Email Sent:", info.messageId);
+        console.log("Email sent:", info.messageId);
 
         return {
             success: true,
@@ -40,7 +71,7 @@ const sendEmail = async (options) => {
             messageId: info.messageId,
         };
     } catch (error) {
-        console.error("❌ Email Error:", error);
+        console.error("Email Error:", error);
         throw new Error(`Failed to send email: ${error.message}`);
     }
 };
