@@ -3,7 +3,9 @@ const nodemailer = require("nodemailer");
 const sendEmail = async (options) => {
     try {
         const transporter = nodemailer.createTransport({
-            service: "gmail",
+            host: process.env.EMAIL_HOST,
+            port: Number(process.env.EMAIL_PORT),
+            secure: false,
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS,
@@ -11,23 +13,25 @@ const sendEmail = async (options) => {
         });
 
         await transporter.verify();
-        console.log("✅ SMTP Connected Successfully");
+        console.log("✅ Brevo SMTP Connected");
 
         const info = await transporter.sendMail({
-            from: process.env.EMAIL_USER,
+            from: `"AI Cold Mail Generator" <${process.env.EMAIL_USER}>`,
             to: options.email,
             subject: options.subject,
             text: options.message,
-            html: options.message.replace(/\n/g, "<br>")
+            html: options.message.replace(/\n/g, "<br>"),
         });
 
         console.log("✅ Email Sent:", info.response);
 
-        return info;
-
-    } catch (err) {
-        console.error("❌ SMTP Error:", err);
-        throw err;
+        return {
+            success: true,
+            message: "Email sent successfully",
+        };
+    } catch (error) {
+        console.error("❌ Email Error:", error);
+        throw new Error(`Failed to send email: ${error.message}`);
     }
 };
 
