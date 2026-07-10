@@ -4,6 +4,7 @@ import {
   ArrowLeftIcon,
   DocumentTextIcon,
   HomeIcon,
+  QuestionMarkCircleIcon,
   SparklesIcon
 } from '@heroicons/react/24/outline';
 
@@ -57,6 +58,20 @@ const Sidebar = () => {
         >
           <DocumentTextIcon className="w-5 h-5 mr-3" />
           Emails
+        </NavLink>
+
+        <NavLink
+          to="/interview"
+          className={({ isActive }) =>
+            `group flex items-center px-3 py-2.5 rounded-md text-sm font-medium transition ${
+              isActive
+                ? 'bg-sky-400/10 text-sky-200'
+                : 'text-slate-300 hover:bg-white/10 hover:text-white'
+            }`
+          }
+        >
+          <QuestionMarkCircleIcon className="w-5 h-5 mr-3" />
+          Interview
         </NavLink>
       </nav>
 

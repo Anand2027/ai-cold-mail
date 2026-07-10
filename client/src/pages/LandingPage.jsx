@@ -3,56 +3,99 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
     ArrowRightIcon,
-    BoltIcon,
-    ChartBarIcon,
-    DocumentTextIcon,
+    EnvelopeOpenIcon,
+    DocumentCheckIcon,
+    AcademicCapIcon,
     SparklesIcon,
     CheckCircleIcon,
-    ChevronRightIcon
+    DocumentTextIcon,
+    PlayCircleIcon
 } from '@heroicons/react/24/outline';
-
-const features = [
-    {
-        name: '5 AI Outreach Tones',
-        description: 'Instantly generate confident, warm, direct, executive, and referral-style variants in a single parallel run.',
-        icon: BoltIcon,
-        badge: 'Popular'
-    },
-    {
-        name: 'Resume-Aware Context Engine',
-        description: 'Deeply parses your technical skills, projects, and career milestones to craft hyper-personalized recruiter hooks.',
-        icon: DocumentTextIcon,
-    },
-    {
-        name: 'Real-Time ATS Score Graph',
-        description: 'Get an immediate visual alignment breakdown against target roles before you hit send.',
-        icon: ChartBarIcon,
-    },
-];
 
 const LandingPage = () => {
     const { user } = useAuth();
-    const [selectedTone, setSelectedTone] = useState('Executive');
+    const [activeTab, setActiveTab] = useState('email'); // 'email', 'ats', 'interview'
 
-    const previewData = {
-        Executive: { title: "Subject: Strategic Growth Opportunity - [Your Name]", desc: "Tailored with a high-level value proposition focusing on ROI, scale, and cross-functional leadership alignment." },
-        Warm: { title: "Subject: Greatly admired your team's work + Introduction", desc: "Constructed with personalized rapport, emphasizing cultural fit, shared professional circles, and mutual enthusiasm." },
-        Direct: { title: "Subject: Senior Engineer Application - [Your Name]", desc: "Stripped of fluff. Directly mappings core technical competencies to open requirements for quick filtering." }
+    // Mock data to show in the interactive dashboard preview
+    const dashboardContent = {
+        email: {
+            title: "AI Cold Email Generator",
+            description: "Generate 5 parallel tones (Executive, Warm, Direct, Referral, Casual) to land in the right inbox.",
+            preview: (
+                <div className="space-y-3 animate-fade-in">
+                    <div className="flex gap-2 mb-4">
+                        {['Executive', 'Direct', 'Casual'].map((tone, i) => (
+                            <span key={tone} className={`px-3 py-1 text-[10px] font-bold rounded-lg ${i === 0 ? 'bg-cyan-500 text-slate-950' : 'bg-slate-900 text-slate-400 border border-white/5'}`}>
+                                {tone}
+                            </span>
+                        ))}
+                    </div>
+                    <div className="bg-slate-900/60 p-4 rounded-xl border border-white/5 text-sm">
+                        <p className="text-cyan-300 font-bold mb-2">Subject: Scaling your backend infra — [Your Name]</p>
+                        <p className="text-slate-400 leading-relaxed">Hi Team,<br/><br/>I noticed you're expanding your distributed systems. With my background in optimizing Kubernetes clusters and reducing latency by 40%, I'd love to explore how I can add value...</p>
+                    </div>
+                </div>
+            )
+        },
+        ats: {
+            title: "ATS Resume Scorer",
+            description: "Upload your resume and the job description. Get an instant match score and missing keywords.",
+            preview: (
+                <div className="flex flex-col sm:flex-row gap-6 items-center animate-fade-in">
+                    <div className="relative h-24 w-24 shrink-0 rounded-full border-4 border-slate-800 flex items-center justify-center">
+                        <svg className="absolute inset-0 h-full w-full -rotate-90 transform text-emerald-500" viewBox="0 0 36 36">
+                            <path strokeDasharray="92, 100" className="stroke-current" strokeWidth="3" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        </svg>
+                        <span className="text-2xl font-black text-white">92%</span>
+                    </div>
+                    <div className="space-y-3 w-full">
+                        <div className="bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 rounded-lg">
+                            <p className="text-[11px] font-bold text-emerald-400 uppercase">Match Found</p>
+                            <p className="text-xs text-slate-300 mt-1">Your profile strongly matches a "Senior Backend Engineer".</p>
+                        </div>
+                        <div className="bg-rose-500/10 border border-rose-500/20 px-3 py-2 rounded-lg">
+                            <p className="text-[11px] font-bold text-rose-400 uppercase">Missing Keywords</p>
+                            <p className="text-xs text-slate-300 mt-1">Add <span className="text-white font-bold">GraphQL</span> and <span className="text-white font-bold">Redis</span> to pass the filter.</p>
+                        </div>
+                    </div>
+                </div>
+            )
+        },
+        interview: {
+            title: "PDF & Quiz Interview Prep",
+            description: "Upload study material or job descriptions to auto-generate mock quizzes and technical interviews.",
+            preview: (
+                <div className="space-y-4 animate-fade-in">
+                    <div className="flex items-center gap-3 bg-indigo-500/10 border border-indigo-500/20 p-3 rounded-xl">
+                        <DocumentTextIcon className="h-8 w-8 text-indigo-400" />
+                        <div>
+                            <p className="text-sm font-bold text-white">System_Design_Guide.pdf</p>
+                            <p className="text-xs text-indigo-300">Scanned successfully • 45 potential questions generated</p>
+                        </div>
+                    </div>
+                    <div className="bg-slate-900/60 border border-white/5 p-4 rounded-xl space-y-3">
+                        <p className="text-sm text-slate-300 font-medium">Q: How do you prevent a cache stampede in a highly concurrent system?</p>
+                        <button className="w-full bg-slate-950 border border-indigo-500/30 text-indigo-400 text-xs font-bold py-2 rounded-lg hover:bg-indigo-500/10 transition">
+                            Start Audio/Quiz Mock Loop
+                        </button>
+                    </div>
+                </div>
+            )
+        }
     };
 
     return (
         <div className="min-h-screen bg-slate-950 font-sans text-slate-100 selection:bg-cyan-500/30 selection:text-white overflow-x-hidden relative">
             
-            {/* SaaS Mesh Gradient Backgrounds */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[600px] pointer-events-none opacity-30 blur-[130px] bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-600 rounded-full" />
-            <div className="absolute top-[800px] -right-40 w-96 h-96 pointer-events-none opacity-10 blur-[100px] bg-cyan-400 rounded-full" />
-
+            {/* Ambient Glows */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[700px] pointer-events-none opacity-20 blur-[160px] bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-600 rounded-full" />
+            
             {/* Navbar */}
             <nav className="fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-slate-950/70 backdrop-blur-md">
                 <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center gap-2.5 group cursor-pointer">
-                        <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 text-slate-950 shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition duration-300">
-                            <SparklesIcon className="h-5 w-5 fill-slate-950" />
+                        <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 text-white shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition duration-300">
+                            <SparklesIcon className="h-5 w-5" />
                         </div>
                         <span className="text-lg font-bold tracking-tight bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
                             MailGen<span className="text-cyan-400">AI</span>
@@ -60,19 +103,14 @@ const LandingPage = () => {
                     </div>
                     <div className="flex items-center gap-4">
                         {user ? (
-                            <Link to="/dashboard" className="relative group overflow-hidden rounded-lg p-[1px] focus:outline-none">
-                                <span className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-lg transition group-hover:opacity-100" />
-                                <div className="relative px-4 py-2 bg-slate-950 rounded-[7px] text-sm font-semibold text-cyan-400 transition group-hover:bg-slate-950/90 group-hover:text-white">
-                                    Dashboard
-                                </div>
+                            <Link to="/dashboard" className="px-4 py-2 bg-slate-900 border border-white/10 rounded-lg text-sm font-semibold text-white hover:bg-slate-800 transition">
+                                Go to Dashboard
                             </Link>
                         ) : (
                             <>
-                                <Link to="/login" className="text-sm font-medium text-slate-400 transition hover:text-white">
-                                    Sign In
-                                </Link>
-                                <Link to="/signup" className="shadow-lg shadow-cyan-500/10 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:opacity-95 hover:scale-[1.02] active:scale-[0.98]">
-                                    Get Started Free
+                                <Link to="/login" className="text-sm font-medium text-slate-400 transition hover:text-white">Sign In</Link>
+                                <Link to="/signup" className="shadow-lg shadow-cyan-500/10 rounded-lg bg-gradient-to-r from-cyan-500 to-indigo-500 px-4 py-2 text-sm font-semibold text-white transition hover:opacity-95 hover:scale-[1.02]">
+                                    Start Free
                                 </Link>
                             </>
                         )}
@@ -80,167 +118,144 @@ const LandingPage = () => {
                 </div>
             </nav>
 
-            <main className="pt-16">
-                {/* Hero Section */}
-                <section className="relative mx-auto max-w-7xl px-4 pt-20 pb-24 sm:px-6 lg:px-8">
-                    <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-12">
-                        
-                        {/* Hero Text */}
-                        <div className="lg:col-span-6 space-y-6 text-center lg:text-left">
-                            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-950/40 backdrop-blur px-3.5 py-1 text-xs font-medium text-cyan-300 shadow-inner">
-                                <span className="flex h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
-                                Cold Email + ATS Matcher v2.0
-                            </div>
-                            <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl lg:leading-[1.15]">
-                                Write recruiter outreach with a{' '}
-                                <span className="bg-gradient-to-r from-cyan-400 via-teal-300 to-blue-500 bg-clip-text text-transparent">
-                                    resume score
-                                </span>{' '}
-                                built in.
-                            </h1>
-                            <p className="mx-auto lg:mx-0 max-w-xl text-base sm:text-lg leading-relaxed text-slate-400">
-                                Stop spraying and praying. Generate hyper-tailored cold emails, LinkedIn connection pitches, and follow-ups backed by data-driven applicant systems.
-                            </p>
+            <main className="pt-24 pb-16">
+                
+                {/* Hero Section - Direct & Explicit */}
+                <section className="relative mx-auto max-w-4xl px-4 text-center space-y-8">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-xs font-bold text-indigo-300 uppercase tracking-widest">
+                        The 3-in-1 Job Hunt Toolkit
+                    </div>
+                    
+                    <h1 className="text-4xl font-black tracking-tight text-white sm:text-6xl leading-[1.1]">
+                        Land Interviews Faster with an <br />
+                        <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
+                            AI-Powered Arsenal.
+                        </span>
+                    </h1>
+                    
+                    <p className="mx-auto max-w-2xl text-lg text-slate-400 leading-relaxed">
+                        Stop guessing. Write personalized cold emails, score your resume against strict ATS filters, and prep for technical rounds by converting any PDF into an interactive quiz.
+                    </p>
+                    
+                    <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
+                        <Link to={user ? '/dashboard' : '/signup'} className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-8 py-4 text-base font-bold text-slate-950 shadow-xl transition hover:bg-slate-100 hover:scale-[1.02]">
+                            Unlock Your Free Toolkit
+                            <ArrowRightIcon className="h-5 w-5 stroke-[2.5]" />
+                        </Link>
+                        <a href="#demo" className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-slate-900/50 backdrop-blur px-8 py-4 text-base font-bold text-white transition hover:bg-slate-900">
+                            <PlayCircleIcon className="h-5 w-5" /> See How It Works
+                        </a>
+                    </div>
+                </section>
+
+                {/* Interactive Feature Showcase - Replaces the bottom quiz */}
+                <section id="demo" className="max-w-5xl mx-auto px-4 pt-24 sm:px-6 lg:px-8">
+                    <div className="text-center mb-10">
+                        <h2 className="text-2xl font-bold text-white">Everything you need in one unified dashboard.</h2>
+                    </div>
+
+                    <div className="rounded-2xl border border-white/10 bg-slate-900/40 backdrop-blur-xl overflow-hidden shadow-2xl">
+                        <div className="grid md:grid-cols-12">
                             
-                            <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-4 pt-2">
-                                <Link
-                                    to={user ? '/dashboard' : '/signup'}
-                                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-slate-950 shadow-md transition hover:bg-slate-100 hover:scale-[1.01]"
+                            {/* Left Side: Tabs */}
+                            <div className="md:col-span-5 bg-slate-950/50 p-6 border-r border-white/5 space-y-2">
+                                <button 
+                                    onClick={() => setActiveTab('email')}
+                                    className={`w-full text-left p-4 rounded-xl border transition-all ${activeTab === 'email' ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-300' : 'border-transparent text-slate-400 hover:bg-slate-900'}`}
                                 >
-                                    Start Generating Free
-                                    <ArrowRightIcon className="h-4 w-4 stroke-[2.5]" />
-                                </Link>
-                                <Link
-                                    to="/login"
-                                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-slate-900/40 backdrop-blur px-6 py-3.5 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
+                                    <div className="flex items-center gap-3">
+                                        <EnvelopeOpenIcon className="h-6 w-6" />
+                                        <div>
+                                            <p className="font-bold text-white">1. Cold Emails</p>
+                                            <p className="text-xs mt-0.5 opacity-80">Generate 5 unique outreach tones</p>
+                                        </div>
+                                    </div>
+                                </button>
+
+                                <button 
+                                    onClick={() => setActiveTab('ats')}
+                                    className={`w-full text-left p-4 rounded-xl border transition-all ${activeTab === 'ats' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'border-transparent text-slate-400 hover:bg-slate-900'}`}
                                 >
-                                    Explore Workbench
-                                </Link>
+                                    <div className="flex items-center gap-3">
+                                        <DocumentCheckIcon className="h-6 w-6" />
+                                        <div>
+                                            <p className="font-bold text-white">2. ATS Scoring</p>
+                                            <p className="text-xs mt-0.5 opacity-80">Match resume vs job description</p>
+                                        </div>
+                                    </div>
+                                </button>
+
+                                <button 
+                                    onClick={() => setActiveTab('interview')}
+                                    className={`w-full text-left p-4 rounded-xl border transition-all ${activeTab === 'interview' ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300' : 'border-transparent text-slate-400 hover:bg-slate-900'}`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <AcademicCapIcon className="h-6 w-6" />
+                                        <div>
+                                            <p className="font-bold text-white">3. Interview Prep</p>
+                                            <p className="text-xs mt-0.5 opacity-80">PDF to custom technical quizzes</p>
+                                        </div>
+                                    </div>
+                                </button>
                             </div>
 
-                            {/* Trust badges */}
-                            <div className="pt-6 flex flex-wrap justify-center lg:justify-start gap-x-6 gap-y-2 text-xs text-slate-500">
-                                <span className="flex items-center gap-1.5"><CheckCircleIcon className="h-4 w-4 text-cyan-500" /> No credit card required</span>
-                                <span className="flex items-center gap-1.5"><CheckCircleIcon className="h-4 w-4 text-cyan-500" /> 10 free generations/mo</span>
-                            </div>
-                        </div>
-
-                        {/* Hero Visual SaaS Sandbox Preview */}
-                        <div className="lg:col-span-6 relative group">
-                            <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-cyan-500 to-indigo-500 opacity-20 blur-xl dynamic-glow transition group-hover:opacity-30" />
-                            <div className="relative rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-xl p-5 shadow-2xl shadow-black/60">
+                            {/* Right Side: Dynamic Content */}
+                            <div className="md:col-span-7 p-8 lg:p-12 flex flex-col justify-center">
+                                <span className="text-[10px] uppercase tracking-widest font-bold text-slate-500 mb-2">Live Preview</span>
+                                <h3 className="text-2xl font-bold text-white mb-2">{dashboardContent[activeTab].title}</h3>
+                                <p className="text-sm text-slate-400 mb-8 max-w-md">{dashboardContent[activeTab].description}</p>
                                 
-                                <div className="mb-5 flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/60 pb-4">
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <p className="text-xs font-medium tracking-wide text-slate-400 uppercase">Live Workbench Preview</p>
-                                        </div>
-                                        <p className="text-sm font-bold text-white mt-0.5">Campaign Workspace</p>
-                                    </div>
-                                    <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-400 backdrop-blur">
-                                        ATS Target Match: 86%
-                                    </span>
-                                </div>
-
-                                <div className="grid gap-5 md:grid-cols-[0.9fr_1.1fr]">
-                                    {/* Score Chart Controls */}
-                                    <div className="flex flex-col justify-between rounded-xl border border-white/5 bg-slate-950/80 p-5">
-                                        <div className="relative mx-auto h-32 w-32">
-                                            <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
-                                                <circle cx="60" cy="60" r="46" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="10" />
-                                                <circle cx="60" cy="60" r="46" fill="none" stroke="url(#cyanGradient)" strokeLinecap="round" strokeWidth="10" strokeDasharray="289" strokeDashoffset="40" className="drop-shadow-[0_0_6px_rgba(34,211,238,0.4)]" />
-                                                <defs>
-                                                    <linearGradient id="cyanGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                        <stop offset="0%" stopColor="#22d3ee" />
-                                                        <stop offset="100%" stopColor="#3b82f6" />
-                                                    </linearGradient>
-                                                </defs>
-                                            </svg>
-                                            <div className="absolute inset-0 grid place-items-center text-center">
-                                                <div>
-                                                    <p className="text-3xl font-extrabold text-white tracking-tight">86</p>
-                                                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Score</p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Dynamic Bar Charts */}
-                                        <div className="mt-5 grid h-16 grid-cols-4 items-end gap-2.5">
-                                            {[48, 62, 74, 86].map((bar, index) => (
-                                                <div key={index} className="flex h-full flex-col justify-end gap-1.5">
-                                                    <div className={`rounded-t-sm transition-all duration-500 ${index === 3 ? 'bg-gradient-to-t from-cyan-500 to-blue-400' : 'bg-slate-800'}`} style={{ height: `${bar}%` }} />
-                                                    <span className="text-center text-[9px] font-semibold text-slate-500">{['Base', 'Skills', 'JD', 'You'][index]}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Tone interactive preview toggles */}
-                                    <div className="flex flex-col gap-3">
-                                        <div className="flex gap-1.5 border-b border-slate-800/80 pb-2">
-                                            {['Executive', 'Warm', 'Direct'].map((tone) => (
-                                                <button 
-                                                    key={tone} 
-                                                    onClick={() => setSelectedTone(tone)}
-                                                    className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${selectedTone === tone ? 'bg-white/10 text-cyan-400 border border-white/10' : 'text-slate-500 hover:text-slate-300'}`}
-                                                >
-                                                    {tone}
-                                                </button>
-                                            ))}
-                                        </div>
-                                        
-                                        <div className="rounded-xl border border-white/5 bg-slate-950/50 p-3.5 space-y-2 min-h-[140px] flex flex-col justify-center">
-                                            <p className="text-xs font-semibold text-cyan-300 transition-all duration-300">{previewData[selectedTone].title}</p>
-                                            <p className="text-[11px] leading-relaxed text-slate-400 transition-all duration-300">{previewData[selectedTone].desc}</p>
-                                        </div>
-
-                                        <div className="mt-auto flex items-center justify-between text-[11px] text-slate-500 px-1">
-                                            <span>⚡ Generated in 1.4s</span>
-                                            <span className="text-cyan-500 hover:underline cursor-pointer inline-flex items-center gap-0.5">Copy Draft <ChevronRightIcon className="h-2.5 w-2.5" /></span>
-                                        </div>
-                                    </div>
+                                {/* Dynamic Component Box */}
+                                <div className="min-h-[200px]">
+                                    {dashboardContent[activeTab].preview}
                                 </div>
                             </div>
-                        </div>
 
+                        </div>
                     </div>
                 </section>
 
-                {/* Features Bento/Grid Section */}
-                <section className="relative border-t border-white/5 bg-slate-900/30 py-24">
-                    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                        
-                        <div className="mb-16 text-center lg:text-left">
-                            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-                                Built into one cohesive pipeline
-                            </h2>
-                            <p className="mt-4 max-w-2xl text-base text-slate-400">
-                                Everything you need to escape the recruitment void, speed up optimization mechanics, and capture executive interest.
-                            </p>
+                {/* Features Grid (Simplified to match the 3 pillars) */}
+                <section className="mx-auto max-w-5xl px-4 py-24 sm:px-6 lg:px-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="p-6 rounded-2xl bg-slate-900/30 border border-white/5 hover:border-cyan-500/30 transition duration-300">
+                            <div className="h-12 w-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 grid place-items-center mb-4">
+                                <EnvelopeOpenIcon className="h-6 w-6" />
+                            </div>
+                            <h3 className="text-lg font-bold text-white mb-2">Never Write from Scratch</h3>
+                            <p className="text-sm text-slate-400">Our engine parses your resume and auto-crafts high-converting emails tailored exactly to the hiring manager.</p>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                            {features.map((feature, i) => (
-                                <div 
-                                    key={feature.name} 
-                                    className="relative overflow-hidden rounded-2xl border border-white/5 bg-slate-900/40 p-6 shadow-inner transition hover:border-white/10 hover:bg-slate-900/70"
-                                >
-                                    {feature.badge && (
-                                        <span className="absolute top-4 right-4 text-[10px] uppercase tracking-widest font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-2 py-0.5 rounded-full">
-                                            {feature.badge}
-                                        </span>
-                                    )}
-                                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-slate-950 text-cyan-400 border border-white/5 shadow-md">
-                                        <feature.icon className="h-5 w-5 stroke-[1.8]" />
-                                    </div>
-                                    <h3 className="mt-6 text-base font-bold text-white">{feature.name}</h3>
-                                    <p className="mt-2.5 text-sm leading-relaxed text-slate-400">{feature.description}</p>
-                                </div>
-                            ))}
+                        <div className="p-6 rounded-2xl bg-slate-900/30 border border-white/5 hover:border-emerald-500/30 transition duration-300">
+                            <div className="h-12 w-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 grid place-items-center mb-4">
+                                <DocumentCheckIcon className="h-6 w-6" />
+                            </div>
+                            <h3 className="text-lg font-bold text-white mb-2">Beat the ATS Bots</h3>
+                            <p className="text-sm text-slate-400">Stop getting auto-rejected. Instantly know which keywords your resume is missing before you hit submit.</p>
                         </div>
 
+                        <div className="p-6 rounded-2xl bg-slate-900/30 border border-white/5 hover:border-indigo-500/30 transition duration-300">
+                            <div className="h-12 w-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 grid place-items-center mb-4">
+                                <AcademicCapIcon className="h-6 w-6" />
+                            </div>
+                            <h3 className="text-lg font-bold text-white mb-2">Aces Every Interview</h3>
+                            <p className="text-sm text-slate-400">Upload any tech documentation or job description PDF. We'll generate custom quizzes to prepare you for the loop.</p>
+                        </div>
                     </div>
                 </section>
+
+                {/* CTA Section */}
+                <section className="mx-auto max-w-4xl px-4 pb-20">
+                    <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 to-slate-950 p-10 text-center shadow-2xl relative overflow-hidden">
+                        <div className="absolute inset-0 opacity-20 bg-gradient-to-r from-cyan-500 to-indigo-600 rounded-3xl blur-2xl" />
+                        <h2 className="text-3xl font-black text-white relative z-10 mb-4">Ready to automate your job hunt?</h2>
+                        <p className="text-slate-400 mb-8 relative z-10 max-w-lg mx-auto">Get access to Cold Emails, ATS Scoring, and Interview Quizzes all in one place.</p>
+                        <Link to="/signup" className="relative z-10 inline-block rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-500 px-8 py-4 text-sm font-bold text-white transition hover:scale-105 shadow-xl shadow-indigo-500/20">
+                            Create Your Free Account
+                        </Link>
+                    </div>
+                </section>
+
             </main>
         </div>
     );

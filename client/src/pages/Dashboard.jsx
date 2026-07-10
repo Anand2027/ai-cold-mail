@@ -18,6 +18,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 const initialForm = {
+    candidateName: '',
     role: '',
     experience: '',
     skills: '',
@@ -169,19 +170,20 @@ const Dashboard = () => {
     const selectedVariant = variants[selectedToneIndex] || variants[0];
     const visibleAts = mode === 'ats' ? atsOnlyResult : result;
     const atsRange = getAtsRange(visibleAts?.atsScore);
-    const canGenerate = form.role.trim() || form.prompt.trim() || resume;
+    const canGenerate = form.candidateName.trim() && (form.role.trim() || form.prompt.trim() || resume);
     const canCheckAts = Boolean(resume);
     const selectedToneMeta = toneOptions.find((tone) => tone.label === form.tone) || toneOptions[0];
 
     const readiness = useMemo(() => {
         const done = [
+            form.candidateName.trim(),
             form.role.trim(),
             form.experience.trim(),
             form.skills.trim(),
             form.targetCompany.trim() || form.jobDescription.trim(),
             resume
         ].filter(Boolean).length;
-        return Math.round((done / 5) * 100);
+        return Math.round((done / 6) * 100);
     }, [form, resume]);
 
     const updateField = (field, value) => {
@@ -250,7 +252,7 @@ const Dashboard = () => {
     const handleGenerate = async (event) => {
         event.preventDefault();
         if (!canGenerate) {
-            toast.error('Add role/prompt or upload resume.');
+            toast.error('Candidate name required hai, phir role/prompt ya resume add karo.');
             return;
         }
 
@@ -395,11 +397,14 @@ const Dashboard = () => {
 
                     <form onSubmit={handleGenerate} className="space-y-5 bg-slate-950 p-6">
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <Field label="Candidate name *" field="candidateName" value={form.candidateName} onChange={updateField} placeholder="Your full name" />
                             <Field label="Role" field="role" value={form.role} onChange={updateField} placeholder="Backend Engineer" />
-                            <Field label="Experience" field="experience" value={form.experience} onChange={updateField} placeholder="2 years / Fresher" />
                         </div>
 
-                        <Field label="Skills" field="skills" value={form.skills} onChange={updateField} placeholder="Node.js, React, MongoDB, DSA" />
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <Field label="Experience" field="experience" value={form.experience} onChange={updateField} placeholder="2 years / Fresher" />
+                            <Field label="Skills" field="skills" value={form.skills} onChange={updateField} placeholder="Node.js, React, MongoDB, DSA" />
+                        </div>
 
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <Field label="Company or team" field="targetCompany" value={form.targetCompany} onChange={updateField} placeholder="Fintech startup" />

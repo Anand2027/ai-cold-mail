@@ -6,6 +6,7 @@ import Signup from './pages/Signup';
 import VerifyOtp from './pages/VerifyOtp';
 import Dashboard from './pages/Dashboard';
 import Emails from './pages/Emails';
+import Interview from './pages/Interview';
 import LandingPage from './pages/LandingPage';
 import { useAuth } from './context/AuthContext';
 
@@ -29,6 +30,9 @@ function App() {
                 </Route>
                 <Route path="/emails" element={user ? <Layout /> : <Navigate to="/login" />}>
                     <Route index element={<Emails />} />
+                </Route>
+                <Route path="/interview" element={user ? <Layout /> : <Navigate to="/login" />}>
+                    <Route index element={<Interview />} />
                 </Route>
             </Routes>
         </Router>

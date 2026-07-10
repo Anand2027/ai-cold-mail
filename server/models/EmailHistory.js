@@ -7,6 +7,7 @@ const emailHistorySchema = new mongoose.Schema({
         required: true
     },
     prompt: { type: String, required: true },
+    candidateName: { type: String },
     subject: { type: String, required: true },
     emailBody: { type: String, required: true },
     linkedInDM: { type: String, required: true },

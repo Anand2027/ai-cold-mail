@@ -19,30 +19,160 @@ const uniqueList = (value = '') => value
   .filter(Boolean)
   .filter((item, index, list) => list.findIndex((entry) => entry.toLowerCase() === item.toLowerCase()) === index);
 
-const buildLocalToneVariants = ({ role, experience, skills, targetCompany, recruiterName, jobDescription, prompt }) => {
+const inferCandidateName = (resumeText = '') => {
+  const firstLines = resumeText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 8);
+
+  const nameLine = firstLines.find((line) => (
+    /^[A-Za-z][A-Za-z.'-]+(?:\s+[A-Za-z][A-Za-z.'-]+){1,3}$/.test(line)
+    && !/(resume|curriculum|email|phone|linkedin|github|developer|engineer|student)/i.test(line)
+  ));
+
+  return nameLine || '';
+};
+
+const formatColdEmailBody = (body = '', candidateRole = 'Software Engineer', candidateName = '') => {
+  const closingName = candidateName.trim() || `Candidate - ${candidateRole}`;
+  const cleanedBody = body
+    .replace(/thank you,?/gi, '')
+    .replace(/best regards,?/gi, '')
+    .replace(/regards,?/gi, '')
+    .replace(/candidate\s*-?.*$/gim, '')
+    .trim();
+
+  const paragraphs = cleanedBody
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+
+  return [
+    ...paragraphs.slice(0, 3),
+    'Regards,',
+    closingName
+  ].join('\n\n');
+};
+
+// FIXED: Upgraded local fallback to generate a robust, superb 3-paragraph email by default
+const buildLocalToneVariants = ({ role, experience, skills, targetCompany, recruiterName, jobDescription, prompt, candidateName = '' }) => {
   const candidateRole = role.trim() || 'Software Engineer';
-  const candidateExperience = experience.trim() || 'hands-on experience';
-  const candidateSkills = skills.trim() || 'backend systems, problem solving, and production features';
+  const cleanCandidateName = candidateName.trim();
+  const candidateExperience = experience.trim() || '2+ years of production experience';
+  const candidateSkills = skills.trim() || 'backend systems, API optimization, and scalable features';
   const company = targetCompany.trim() || 'your team';
-  const recruiter = recruiterName.trim() || 'there';
-  const context = jobDescription.trim() || prompt.trim() || 'building reliable, scalable products';
+  const recruiter = recruiterName.trim() || 'Hiring Team';
+  const context = jobDescription.trim() || prompt.trim() || 'building reliable, scalable infrastructure';
 
   const openers = {
-    'Confident and professional': `Hi ${recruiter}, I noticed ${company} is focused on ${context}.`,
-    'Warm and conversational': `Hi ${recruiter}, I came across ${company}'s work around ${context} and it genuinely stood out.`,
-    'Direct and concise': `Hi ${recruiter}, I am reaching out for ${candidateRole} opportunities at ${company}.`,
-    'Senior and impact-focused': `Hi ${recruiter}, ${company}'s focus on ${context} looks like the kind of environment where strong execution matters.`,
-    'Friendly referral-style': `Hi ${recruiter}, I wanted to quickly introduce myself for ${candidateRole} roles at ${company}.`
+    'Confident and professional': `Hi ${recruiter},\n\nI noticed ${company} has been scaling engineering capacity, specifically regarding your work with ${context}. With technical requirements moving quickly to hit key goals, onboarding developers who can execute independently is critical.`,
+    'Warm and conversational': `Hi ${recruiter},\n\nI came across ${company}’s recent updates surrounding ${context} and your engineering workflow genuinely stood out. It looks like an incredibly dynamic environment for building high-quality, impactful features.`,
+    'Direct and concise': `Hi ${recruiter},\n\nI am reaching out regarding upcoming ${candidateRole} opportunities on your team at ${company}, specifically supporting technical initiatives focused on ${context}.`,
+    'Senior and impact-focused': `Hi ${recruiter},\n\n${company}’s recent growth and push into ${context} demands a software engineering framework focused on high availability, performance, and strong structural execution.`,
+    'Friendly referral-style': `Hi ${recruiter},\n\nI wanted to quickly introduce myself. I’ve been following ${company}’s engineering growth in the ${context} space and wanted to check for alignment with your current talent needs.`
   };
 
   return TONE_OPTIONS.map((toneName, index) => ({
     tone: toneName,
-    subject: `${candidateRole} with ${candidateExperience}`.slice(0, 80),
-    emailBody: `${openers[toneName]}\nTeams hiring for this role usually need someone who can ramp fast, write clean code, and contribute without heavy hand-holding.\nI bring ${candidateExperience} with strengths in ${candidateSkills}.\nI can help with feature delivery, debugging, APIs, and measurable product improvements.\nWould you be open to a quick conversation this week?\nBest,\nCandidate - ${candidateRole}`,
+    subject: `${candidateRole} with expertise in ${candidateSkills}`.slice(0, 80),
+    emailBody: formatColdEmailBody(`${openers[toneName]}\n\nI bring robust experience specializing in ${candidateSkills}. In my previous engineering roles, I focused on shipping clean production-level code, writing reliable APIs, and resolving architectural bottlenecks without heavy oversight. I am comfortable translating abstract requirements into concrete, scalable code changes that improve delivery speed and product stability.\n\nIf your team is currently looking to accelerate delivery timelines or strengthen platform performance, I would welcome the chance to discuss how my background fits your roadmap. Would you be open to a brief 10-minute conversation this week?`, candidateRole, cleanCandidateName),
     linkedInDM: `Hi ${recruiter}, I am exploring ${candidateRole} roles at ${company}. I bring ${candidateExperience} across ${candidateSkills}. Would it be okay if I shared my resume for a relevant opening?`,
     followUpEmail: `Hi ${recruiter}, following up on my note about ${candidateRole} opportunities at ${company}. My background in ${candidateSkills} could be useful for teams working on ${context}. Happy to share more details or a short project summary if helpful.`,
-    score: 92 - index
+    score: 95 - index
   }));
+};
+
+const inferInterviewFocus = (resumeText = '', role = '') => {
+  const normalized = normalizeText(`${resumeText} ${role}`);
+  const skillMap = [
+    ['React', ['react', 'jsx', 'redux', 'frontend']],
+    ['Node.js', ['node', 'express', 'api', 'backend']],
+    ['MongoDB', ['mongodb', 'mongoose', 'database']],
+    ['JavaScript', ['javascript', 'typescript', 'es6']],
+    ['Python', ['python', 'django', 'flask']],
+    ['SQL', ['sql', 'mysql', 'postgresql']],
+    ['System Design', ['scalable', 'microservice', 'architecture', 'system design']],
+    ['DSA', ['algorithm', 'data structure', 'leetcode']]
+  ];
+
+  const matched = skillMap
+    .filter(([, keywords]) => keywords.some((keyword) => normalized.includes(keyword)))
+    .map(([label]) => label);
+
+  return matched.length ? matched.slice(0, 5) : ['Projects', 'Problem solving', 'Communication', 'Role fundamentals'];
+};
+
+const buildLocalInterviewPrep = ({ resumeText, role }) => {
+  const candidateRole = role.trim() || 'Software Engineer';
+  const focusAreas = inferInterviewFocus(resumeText, role);
+  const primarySkill = focusAreas[0] || 'your strongest technical skill';
+  const secondarySkill = focusAreas[1] || 'project execution';
+
+  const questions = [
+    {
+      question: `Tell me about yourself for a ${candidateRole} interview.`,
+      answer: `Start with your current profile, then connect your strongest projects and skills to the ${candidateRole} role. Mention ${primarySkill}, ${secondarySkill}, and one measurable result from your resume. Keep it under 90 seconds and end by saying what kind of problems you want to solve next.`
+    },
+    {
+      question: `Which project from your resume best proves you are ready for this role?`,
+      answer: `Pick the project with the clearest business or technical impact. Explain the problem, your responsibility, the stack used, one hard tradeoff, and the final result. Interviewers like answers that show ownership, debugging ability, and product thinking.`
+    },
+    {
+      question: `How would you explain your experience with ${primarySkill}?`,
+      answer: `Give a practical example instead of a definition. Describe where you used ${primarySkill}, why it was needed, how you structured the solution, and what you would improve if you rebuilt it today.`
+    },
+    {
+      question: `What technical challenge did you face and how did you solve it?`,
+      answer: `Use the STAR format: situation, task, action, result. Focus on a bug, performance issue, integration problem, or design limitation. Highlight your investigation steps and the decision that fixed the issue.`
+    },
+    {
+      question: `How do you write clean and maintainable code?`,
+      answer: `Talk about small functions, readable names, reusable components, validation, error handling, and tests. Add that you prefer reviewing edge cases early and documenting only the parts that are not obvious from the code.`
+    },
+    {
+      question: `How do you handle a feature when requirements are unclear?`,
+      answer: `Say that you clarify user goals, define acceptance criteria, identify risks, and build the smallest useful version first. Mention that you keep stakeholders updated and avoid overengineering before the behavior is validated.`
+    },
+    {
+      question: `What are your strengths as a ${candidateRole}?`,
+      answer: `Choose two strengths backed by evidence, such as fast learning, debugging, API design, UI implementation, or database modeling. Tie each strength to a resume project or internship experience.`
+    },
+    {
+      question: `What is one weakness you are improving?`,
+      answer: `Pick a real but non-fatal weakness, such as estimating complex tasks or speaking up earlier during planning. Explain the system you use to improve it, like breaking tasks into smaller milestones or writing assumptions before coding.`
+    },
+    {
+      question: `Why should we hire you?`,
+      answer: `Connect your resume to the team's needs. Mention that you can learn quickly, ship practical features, communicate blockers early, and bring hands-on experience in ${focusAreas.slice(0, 3).join(', ')}.`
+    },
+    {
+      question: `Do you have any questions for us?`,
+      answer: `Ask about team goals, current technical challenges, success metrics for the role, code review culture, and the first project a new hire would own. This shows maturity and genuine interest.`
+    }
+  ];
+
+  const quiz = questions.map((item, index) => {
+    const correct = [
+      'Use a specific resume example with impact',
+      'Give only a memorized definition',
+      'Avoid mentioning tradeoffs',
+      'Keep the answer unrelated to the role'
+    ];
+
+    return {
+      question: `Q${index + 1}: Best way to answer "${item.question}"`,
+      options: correct,
+      answerIndex: 0
+    };
+  });
+
+  return {
+    role: candidateRole,
+    focusAreas,
+    questions,
+    quiz
+  };
 };
 
 const extractResumeText = async (file) => {
@@ -142,14 +272,15 @@ exports.generateEmail = async (req, res) => {
       targetCompany = '',
       recruiterName = '',
       jobDescription = '',
-      tone = 'Confident and professional'
+      tone = 'Confident and professional',
+      candidateName = ''
     } = req.body;
 
     if (!prompt && !role && !req.file) {
       return res.status(400).json({ message: 'Add a role, prompt, or resume to generate outreach' });
     }
 
-    const textFields = { prompt, role, experience, skills, targetCompany, recruiterName, jobDescription, tone };
+    const textFields = { prompt, role, experience, skills, targetCompany, recruiterName, jobDescription, tone, candidateName };
     const invalidField = Object.entries(textFields).find(([, value]) => typeof value !== 'string');
     if (invalidField) {
       return res.status(400).json({ message: `${invalidField[0]} must be a string` });
@@ -161,153 +292,69 @@ exports.generateEmail = async (req, res) => {
     }
 
     const resumeText = await safeExtractResumeText(req.file);
+    const resolvedCandidateName = candidateName.trim() || inferCandidateName(resumeText);
+    if (!resolvedCandidateName) {
+      return res.status(400).json({ message: 'Candidate name is required' });
+    }
+
     const atsResult = calculateAtsScore({ resumeText, role, skills, experience, jobDescription });
 
-    // Call Groq API (Free tier - No quota issues!)
     const groqApiKey = process.env.GROQ_API_KEY;
 
-    const systemPrompt = `You are an expert job outreach strategist.
+    // FIXED: Rewrote the system prompt instructions to guarantee 3 lengthy paragraphs even under JSON mode constraints
+    const systemPrompt = `You are an expert job outreach copywriter. Your goal is to write a superb, highly detailed, 3-paragraph cold email structure inside a clean JSON output format.
 
-Your task is to generate a HIGH-CONVERTING cold email to a recruiter for a job opportunity.
+CRITICAL INSTRUCTION FOR emailBody STRING VALUE:
+The value inside the "emailBody" property MUST contain exactly 2-3 distinct, detailed paragraphs separated explicitly by dual newline characters (\\n\\n). It must close out with "Regards,\\n[Name/Title]" after one blank line. Do not make it short or direct. Make it rich, professional, and thorough.
 
-IMPORTANT:
-- Even if the user gives only 2–4 words, assume realistic context.
-- Do NOT ask for clarification.
-- Make professional assumptions.
-- Avoid generic phrases.
-- Keep it concise and structured.
+Follow this strict layout for the text contents:
+- Paragraph 1 (Context hook - 40-50 words): Write a detailed observation regarding the company's business space, hiring trends, engineering scaling bottlenecks, or feature roadmaps, and how your timing aligns with their development needs.
+- Paragraph 2 (Deep Value Prop - 70-100 words): Write a thorough overview of your software engineering track record. Detail building backend features, shipping systems architecture, optimizing complex APIs, handling web applications, and writing modular clean code that directly addresses performance or system stability.
+- Paragraph 3 (Call to Action - 30-40 words): A professional request for a small conversational slot (10-15 minutes) this week to sync on their engineering goals.
+- Closing: Use exactly "Regards,\\n[Candidate Name]" with no extra "Thank you" line.
 
-====================================================
-OUTPUT FORMAT (STRICT)
-====================================================
-
-Return ONLY valid JSON:
-
+Output MUST conform entirely to this structural layout:
 {
-  "subject": "",
-  "emailBody": "",
-  "linkedInDM": "",
-  "followUpEmail": "",
+  "subject": "Detailed descriptive subject line matching rules",
+  "emailBody": "First deep paragraph here outlining contextual observation trends.\\n\\nSecond thorough paragraph emphasizing technical systems execution, engineering methodologies, optimization metrics, and independent shipping capability.\\n\\nThird paragraph providing a consultative soft close and chat invitation.\\n\\nRegards,\\nCandidate Name",
+  "linkedInDM": "Short conversational message",
+  "followUpEmail": "Secondary value-add follow up message",
   "toneVariants": [
     {
       "tone": "Confident and professional",
-      "subject": "",
-      "emailBody": "",
-      "linkedInDM": "",
-      "followUpEmail": "",
-      "score": 0
+      "subject": "...",
+      "emailBody": "...",
+      "linkedInDM": "...",
+      "followUpEmail": "...",
+      "score": 95
     }
   ]
 }
 
-No markdown.
-No explanations.
-Only JSON.
-
-====================================================
-CONTEXT ASSUMPTIONS
-====================================================
-
-Assume:
-- Candidate has 2+ years experience
-- Strong in DSA and system design
-- Has worked on backend APIs or scalable systems
-- Has contributed to production-level features
-- Actively seeking Software Engineer roles
-
-If prompt is short like:
-"SDE role"
-"Backend engineer"
-"Startup job"
-"Product company"
-
-Create intelligent assumptions about:
-- Scaling challenges
-- Hiring urgency
-- Performance or system reliability issues
-- Team growth
-
-====================================================
-SUBJECT LINE RULES
-====================================================
-
-• 6–9 words
-• Must sound confident
-• No generic phrases like:
-  - "Quick question"
-  - "Looking for opportunity"
-  - "Job application"
-• Should highlight value or experience
-
-Example styles:
-"Backend engineer with 2+ yrs scaling APIs"
-"Engineer focused on scalable system design"
-"Software engineer improving system performance"
-
-====================================================
-EMAIL BODY STRUCTURE (STRICT)
-====================================================
-
-Keep 60–90 words.
-
-Line 1: Personalized observation about hiring  
-Line 2: Mention common hiring/scaling challenge  
-Line 3-4: Candidate's experience and strengths  
-Line 5: Specific impact or contribution  
-Line 6: Clear CTA  
-Line 7: Sign-off with name and title  
-
-Tone:
-• Confident
-• Professional
-• Not desperate
-• No emojis
-• No hype words
-
-====================================================
-LINKEDIN DM STRUCTURE
-====================================================
-
-30–50 words.
-Short, conversational.
-Observation + value + soft ask.
-
-====================================================
-FOLLOW-UP EMAIL STRUCTURE
-====================================================
-
-50–80 words.
-New angle.
-Emphasize long-term value.
-Professional urgency.
-Clear CTA.
-
-====================================================
-
-Return ONLY valid JSON.`;
+Return only valid JSON syntax. No markdown blocks outside the structure.`;
     
     const structuredContext = `
-Candidate role: ${role.trim() || 'Use smart assumptions'}
-Experience: ${experience.trim() || 'Use smart assumptions'}
-Core skills: ${skills.trim() || 'Use smart assumptions'}
-Target company/team: ${targetCompany.trim() || 'Not specified'}
-Recruiter/hiring manager: ${recruiterName.trim() || 'Not specified'}
-Job description or hiring context: ${jobDescription.trim() || 'Not specified'}
+Candidate role: ${role.trim() || 'Software Engineer'}
+Experience: ${experience.trim() || 'Production experience'}
+Core skills: ${skills.trim() || 'Backend engineering, systems design, full stack development'}
+Target company: ${targetCompany.trim() || 'your team'}
+Recruiter name: ${recruiterName.trim() || 'Hiring Team'}
+Job context: ${jobDescription.trim() || prompt.trim() || 'Building reliable and scalable products'}
 Preferred tone: ${tone.trim() || 'Confident and professional'}
-Required tone variants: ${TONE_OPTIONS.join(' | ')}
-Extra request: ${prompt.trim() || 'Generate a strong cold email from the available candidate context'}
-Resume highlights: ${resumeText ? resumeText.slice(0, 2500) : 'No resume uploaded'}
-ATS score: ${atsResult ? `${atsResult.score}/100` : 'No resume uploaded'}
+Required variants: ${TONE_OPTIONS.join(' | ')}
+Resume details: ${resumeText ? resumeText.slice(0, 2500) : 'None provided'}
+Candidate name for closing: ${resolvedCandidateName}
 `;
 
     let parsedResponse;
 
     try {
       if (!groqApiKey) {
-        throw new Error('AI service is not configured');
+        throw new Error('AI service key process.env.GROQ_API_KEY is not configured');
       }
 
-      const fullPrompt = `${systemPrompt}\n\nCAMPAIGN CONTEXT:\n${structuredContext}\n\nGenerate ALL 5 tone variants listed in Required tone variants. Each variant must have subject, emailBody, linkedInDM, followUpEmail, and score from 1-100. Put the preferred tone as the top-level subject/emailBody/linkedin/followUp fields too. Return ONLY valid JSON:\n{"subject": "...", "emailBody": "...", "linkedInDM": "...", "followUpEmail": "...", "toneVariants": [{"tone": "Confident and professional", "subject": "...", "emailBody": "...", "linkedInDM": "...", "followUpEmail": "...", "score": 90}]}`;
+      const fullPrompt = `${systemPrompt}\n\nCAMPAIGN INPUT CONTEXT:\n${structuredContext}\n\nTask: Generate the preferred tone data along with ALL 5 explicit tone variants inside the toneVariants array. Ensure every emailBody value is written in a detailed 2-3 paragraph format with a clean Regards closing.`;
+      
       const aiResponse = await axios.post(
         'https://api.groq.com/openai/v1/chat/completions',
         {
@@ -318,7 +365,8 @@ ATS score: ${atsResult ? `${atsResult.score}/100` : 'No resume uploaded'}
               content: fullPrompt
             }
           ],
-          temperature: 0.7,
+          response_format: { type: "json_object" },
+          temperature: 0.6,
           max_tokens: 4096
         },
         {
@@ -331,15 +379,18 @@ ATS score: ${atsResult ? `${atsResult.score}/100` : 'No resume uploaded'}
       );
 
       if (!aiResponse.data.choices || !aiResponse.data.choices[0] || !aiResponse.data.choices[0].message) {
-        throw new Error('Invalid response from Groq API');
+        throw new Error('Invalid response payload from Groq API endpoints');
       }
 
       const generatedText = aiResponse.data.choices[0].message.content;
-      const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
-      parsedResponse = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(generatedText);
+      parsedResponse = JSON.parse(generatedText);
     } catch (aiError) {
-      console.error('AI fallback used:', aiError.response?.data || aiError.message);
-      const fallbackVariants = buildLocalToneVariants({ role, experience, skills, targetCompany, recruiterName, jobDescription, prompt });
+      // CRITICAL: Logging the exact failure reason to terminal so you can check why Groq broke
+      console.error('--- GROQ API ERROR REASON ---');
+      console.error(aiError.response?.data || aiError.message);
+      console.error('--- SWITCHING TO HIGH QUALITY 3-PARA LOCAL BACKEND ENGINE ---');
+
+      const fallbackVariants = buildLocalToneVariants({ role, experience, skills, targetCompany, recruiterName, jobDescription, prompt, candidateName: resolvedCandidateName });
       const preferredFallback = fallbackVariants.find((variant) => normalizeText(variant.tone) === normalizeText(tone)) || fallbackVariants[0];
       parsedResponse = {
         subject: preferredFallback.subject,
@@ -355,33 +406,32 @@ ATS score: ${atsResult ? `${atsResult.score}/100` : 'No resume uploaded'}
           const variant = parsedResponse.toneVariants.find((item) => normalizeText(item?.tone) === normalizeText(toneName)) || {};
           return {
             tone: toneName,
-            subject: variant.subject || parsedResponse.subject || 'New Opportunity',
-            emailBody: variant.emailBody || parsedResponse.emailBody || '',
+            subject: variant.subject || parsedResponse.subject || 'New Engineering Opportunity',
+            emailBody: formatColdEmailBody(variant.emailBody || parsedResponse.emailBody || '', role.trim() || 'Software Engineer', resolvedCandidateName),
             linkedInDM: variant.linkedInDM || parsedResponse.linkedInDM || '',
             followUpEmail: variant.followUpEmail || parsedResponse.followUpEmail || '',
-            score: Number.isFinite(Number(variant.score)) ? Math.max(1, Math.min(100, Number(variant.score))) : 85
+            score: Number.isFinite(Number(variant.score)) ? Math.max(1, Math.min(100, Number(variant.score))) : 90
           };
         })
       : TONE_OPTIONS.map((toneName) => ({
           tone: toneName,
-          subject: parsedResponse.subject || 'New Opportunity',
-          emailBody: parsedResponse.emailBody || '',
+          subject: parsedResponse.subject || 'New Engineering Opportunity',
+          emailBody: formatColdEmailBody(parsedResponse.emailBody || '', role.trim() || 'Software Engineer', resolvedCandidateName),
           linkedInDM: parsedResponse.linkedInDM || '',
           followUpEmail: parsedResponse.followUpEmail || '',
-          score: 85
+          score: 90
         }));
 
     const preferredVariant = normalizedVariants.find((variant) => normalizeText(variant.tone) === normalizeText(tone)) || normalizedVariants[0];
 
     const emailData = {
-      subject: parsedResponse.subject || preferredVariant.subject || "New Opportunity",
-      emailBody: parsedResponse.emailBody || preferredVariant.emailBody || "",
+      subject: parsedResponse.subject || preferredVariant.subject || "New Engineering Opportunity",
+      emailBody: formatColdEmailBody(parsedResponse.emailBody || preferredVariant.emailBody || "", role.trim() || 'Software Engineer', resolvedCandidateName),
       linkedInDM: parsedResponse.linkedInDM || preferredVariant.linkedInDM || "",
       followUpEmail: parsedResponse.followUpEmail || preferredVariant.followUpEmail || "",
       toneVariants: normalizedVariants
     };
 
-    // Validate response data
     if (!emailData.subject || !emailData.emailBody) {
       return res.status(500).json({ 
         message: 'AI generated incomplete email data. Please try again.' 
@@ -391,6 +441,7 @@ ATS score: ${atsResult ? `${atsResult.score}/100` : 'No resume uploaded'}
     const historyPayload = {
       userId: req.user._id,
       prompt: structuredContext.trim(),
+      candidateName: resolvedCandidateName,
       subject: emailData.subject,
       emailBody: emailData.emailBody,
       linkedInDM: emailData.linkedInDM,
@@ -415,7 +466,7 @@ ATS score: ${atsResult ? `${atsResult.score}/100` : 'No resume uploaded'}
     res.status(200).json(historyEntry);
   } catch (error) {
     const detail = getErrorMessage(error);
-    console.error('AI Generation Error:', error.response?.data || detail);
+    console.error('AI Generation Error:', detail);
     
     if (error.response?.status === 429) {
       return res.status(429).json({ 
@@ -466,6 +517,112 @@ exports.checkAts = async (req, res) => {
     console.error('ATS Check Error:', detail);
     res.status(500).json({
       message: `Failed to check ATS score: ${detail}`,
+      error: detail
+    });
+  }
+};
+
+exports.prepareInterview = async (req, res) => {
+  try {
+    const { role = '', extraContext = '' } = req.body;
+
+    if (typeof role !== 'string' || typeof extraContext !== 'string') {
+      return res.status(400).json({ message: 'Role and extra context must be strings' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: 'Resume is required for interview preparation' });
+    }
+
+    const resumeText = await safeExtractResumeText(req.file, { required: true });
+    if (!resumeText.trim()) {
+      return res.status(400).json({ message: 'Could not read text from this resume' });
+    }
+
+    const fallbackPrep = buildLocalInterviewPrep({ resumeText, role });
+    const groqApiKey = process.env.GROQ_API_KEY;
+    let parsedResponse = fallbackPrep;
+
+    try {
+      if (!groqApiKey) {
+        throw new Error('AI service key process.env.GROQ_API_KEY is not configured');
+      }
+
+      const prompt = `You are an expert technical interview coach.
+Create interview preparation from the candidate resume.
+Return only valid JSON in this exact shape:
+{
+  "role": "target role",
+  "focusAreas": ["skill 1", "skill 2", "skill 3", "skill 4"],
+  "questions": [
+    { "question": "interview question", "answer": "strong sample answer tailored to resume" }
+  ],
+  "quiz": [
+    { "question": "quiz question", "options": ["A", "B", "C", "D"], "answerIndex": 0 }
+  ]
+}
+Rules:
+- questions must contain 10 interview questions with practical answers.
+- quiz must contain 10 related quiz questions.
+- answerIndex must be 0, 1, 2, or 3.
+- Keep answers concise but useful.
+
+Target role: ${role.trim() || 'Software Engineer'}
+Extra context: ${extraContext.trim() || 'None'}
+Resume text: ${resumeText.slice(0, 3500)}`;
+
+      const aiResponse = await axios.post(
+        'https://api.groq.com/openai/v1/chat/completions',
+        {
+          model: 'llama-3.3-70b-versatile',
+          messages: [{ role: 'user', content: prompt }],
+          response_format: { type: 'json_object' },
+          temperature: 0.4,
+          max_tokens: 4096
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${groqApiKey}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 30000
+        }
+      );
+
+      parsedResponse = JSON.parse(aiResponse.data.choices[0].message.content);
+    } catch (aiError) {
+      console.error('Interview prep AI fallback:', aiError.response?.data || aiError.message);
+    }
+
+    const questions = Array.isArray(parsedResponse.questions) && parsedResponse.questions.length
+      ? parsedResponse.questions
+      : fallbackPrep.questions;
+    const quiz = Array.isArray(parsedResponse.quiz) && parsedResponse.quiz.length
+      ? parsedResponse.quiz
+      : fallbackPrep.quiz;
+
+    res.status(200).json({
+      role: parsedResponse.role || fallbackPrep.role,
+      focusAreas: Array.isArray(parsedResponse.focusAreas) && parsedResponse.focusAreas.length
+        ? parsedResponse.focusAreas.slice(0, 6)
+        : fallbackPrep.focusAreas,
+      questions: questions.slice(0, 10).map((item, index) => ({
+        question: item.question || fallbackPrep.questions[index]?.question || `Interview question ${index + 1}`,
+        answer: item.answer || fallbackPrep.questions[index]?.answer || 'Use your resume experience and explain the impact clearly.'
+      })),
+      quiz: quiz.slice(0, 10).map((item, index) => ({
+        question: item.question || fallbackPrep.quiz[index]?.question || `Quiz question ${index + 1}`,
+        options: Array.isArray(item.options) && item.options.length === 4 ? item.options : fallbackPrep.quiz[index]?.options,
+        answerIndex: Number.isInteger(item.answerIndex) && item.answerIndex >= 0 && item.answerIndex <= 3
+          ? item.answerIndex
+          : fallbackPrep.quiz[index]?.answerIndex || 0
+      }))
+    });
+  } catch (error) {
+    const detail = getErrorMessage(error);
+    console.error('Interview Prep Error:', detail);
+    res.status(500).json({
+      message: `Failed to prepare interview: ${detail}`,
       error: detail
     });
   }

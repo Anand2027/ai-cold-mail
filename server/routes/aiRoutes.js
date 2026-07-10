@@ -1,7 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const router = express.Router();
-const { generateEmail, checkAts, getHistory } = require('../controllers/aiController');
+const { generateEmail, checkAts, prepareInterview, getHistory } = require('../controllers/aiController');
 const { protect } = require('../middleware/authMiddleware');
 
 const upload = multer({
@@ -35,6 +35,7 @@ const uploadResume = (req, res, next) => {
 
 router.post('/generate-email', protect, uploadResume, generateEmail);
 router.post('/check-ats', protect, uploadResume, checkAts);
+router.post('/interview-prep', protect, uploadResume, prepareInterview);
 router.get('/history', protect, getHistory);
 
 module.exports = router;
